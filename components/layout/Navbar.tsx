@@ -10,7 +10,7 @@ import { signOut } from "@/lib/auth";
 import { toast } from "sonner";
 
 export function Navbar() {
-  const { session, logout, switchRole } = useSession();
+  const { session, logout } = useSession();
   const { user: supabaseUser } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -22,7 +22,7 @@ export function Navbar() {
     setMounted(true);
   }, []);
 
-  // Use Supabase user if available, fall back to localStorage session
+  // Use Supabase user if available, fall back to session
   const activeUser = supabaseUser
     ? { name: supabaseUser.name, role: supabaseUser.role, email: supabaseUser.email }
     : session
@@ -30,17 +30,12 @@ export function Navbar() {
     : null;
 
   const handleLogout = async () => {
-    // Sign out from both Supabase and localStorage
+    // Sign out from both Supabase and session
     try { await signOut(); } catch {}
     logout();
     toast.success("Logged out");
     window.location.href = "/";
     setMobileOpen(false);
-  };
-
-  const handleSwitchRole = (role: "brand" | "creator") => {
-    switchRole(role);
-    toast.success(`Switched to ${role === "brand" ? "Brand" : "Creator"} mode`);
   };
 
   const navLinks = [
@@ -131,22 +126,6 @@ export function Navbar() {
               <div className="w-8 h-8 rounded-full bg-white/5 animate-pulse" />
             ) : activeUser ? (
               <>
-                {/* Demo Role Switcher — only show for localStorage demo users */}
-                {session && !supabaseUser && (
-                  <div className="flex items-center gap-1 bg-violet-500/10 border border-violet-500/20 rounded-lg px-2 py-1">
-                    <Zap className="w-3 h-3 text-violet-400" />
-                    <span className="text-xs text-violet-400 font-medium mr-1">Demo</span>
-                    <button onClick={() => handleSwitchRole("brand")}
-                      className={`text-xs px-2 py-0.5 rounded transition-all font-medium ${session.role === "brand" ? "bg-violet-500 text-white" : "text-muted-foreground hover:text-foreground"}`}>
-                      Brand
-                    </button>
-                    <button onClick={() => handleSwitchRole("creator")}
-                      className={`text-xs px-2 py-0.5 rounded transition-all font-medium ${session.role === "creator" ? "bg-cyan-500 text-white" : "text-muted-foreground hover:text-foreground"}`}>
-                      Creator
-                    </button>
-                  </div>
-                )}
-
                 {/* User info */}
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center text-white text-sm font-bold shadow-lg flex-shrink-0">
@@ -217,29 +196,18 @@ export function Navbar() {
                 </Link>
               ))}
 
-              {mounted && session ? (
+              {mounted && (activeUser || session) ? (
                 <div className="pt-3 border-t border-white/5 space-y-2">
                   <div className="flex items-center gap-3 px-3 py-2">
                     <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center text-white font-bold">
-                      {session.name.charAt(0)}
+                      {(activeUser?.name || session?.name || 'U').charAt(0)}
                     </div>
                     <div>
-                      <div className="text-sm font-semibold">{session.name}</div>
-                      <div className={`text-xs ${session.role === "brand" ? "text-violet-400" : "text-cyan-400"}`}>
-                        {session.role}
+                      <div className="text-sm font-semibold">{activeUser?.name || session?.name}</div>
+                      <div className={`text-xs ${(activeUser?.role || session?.role) === "brand" ? "text-violet-400" : "text-cyan-400"}`}>
+                        {(activeUser?.role || session?.role) === "brand" ? "Brand" : "Creator"}
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 px-3">
-                    <span className="text-xs text-muted-foreground">Switch role:</span>
-                    <button onClick={() => { handleSwitchRole("brand"); setMobileOpen(false); }}
-                      className={`text-xs px-3 py-1 rounded-lg font-medium ${session.role === "brand" ? "bg-violet-500 text-white" : "bg-white/5 text-muted-foreground"}`}>
-                      Brand
-                    </button>
-                    <button onClick={() => { handleSwitchRole("creator"); setMobileOpen(false); }}
-                      className={`text-xs px-3 py-1 rounded-lg font-medium ${session.role === "creator" ? "bg-cyan-500 text-white" : "bg-white/5 text-muted-foreground"}`}>
-                      Creator
-                    </button>
                   </div>
                   <button onClick={handleLogout}
                     className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-all">

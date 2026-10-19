@@ -1,33 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { Session, UserRole } from "@/types";
-import { storage } from "@/lib/storage";
-
-const DEMO_CREDENTIALS = [
-  // Brand accounts
-  { email: "brand@cinegen.demo", password: "Demo@123", session: { userId: "brand-001", email: "brand@cinegen.demo", role: "brand" as UserRole, name: "Arjun Mehta", brandId: "brand-001" } },
-  { email: "admin@cinegen.demo", password: "Demo@123", session: { userId: "brand-001", email: "admin@cinegen.demo", role: "brand" as UserRole, name: "Arjun Mehta", brandId: "brand-001" } },
-  // All 18 creators — password is Demo@123 for all
-  { email: "aryan@cinegen.demo", password: "Demo@123", session: { userId: "creator-001", email: "aryan@cinegen.demo", role: "creator" as UserRole, name: "Aryan Kapoor", creatorId: "creator-001" } },
-  { email: "creator@cinegen.demo", password: "Demo@123", session: { userId: "creator-001", email: "creator@cinegen.demo", role: "creator" as UserRole, name: "Aryan Kapoor", creatorId: "creator-001" } },
-  { email: "priya@cinegen.demo", password: "Demo@123", session: { userId: "creator-002", email: "priya@cinegen.demo", role: "creator" as UserRole, name: "Priya Nair", creatorId: "creator-002" } },
-  { email: "rahul@cinegen.demo", password: "Demo@123", session: { userId: "creator-003", email: "rahul@cinegen.demo", role: "creator" as UserRole, name: "Rahul Sharma", creatorId: "creator-003" } },
-  { email: "zara@cinegen.demo", password: "Demo@123", session: { userId: "creator-004", email: "zara@cinegen.demo", role: "creator" as UserRole, name: "Zara Ahmed", creatorId: "creator-004" } },
-  { email: "marcus@cinegen.demo", password: "Demo@123", session: { userId: "creator-005", email: "marcus@cinegen.demo", role: "creator" as UserRole, name: "Marcus Chen", creatorId: "creator-005" } },
-  { email: "anjali@cinegen.demo", password: "Demo@123", session: { userId: "creator-006", email: "anjali@cinegen.demo", role: "creator" as UserRole, name: "Anjali Desai", creatorId: "creator-006" } },
-  { email: "vikram@cinegen.demo", password: "Demo@123", session: { userId: "creator-007", email: "vikram@cinegen.demo", role: "creator" as UserRole, name: "Vikram Rajan", creatorId: "creator-007" } },
-  { email: "lena@cinegen.demo", password: "Demo@123", session: { userId: "creator-008", email: "lena@cinegen.demo", role: "creator" as UserRole, name: "Lena Volkov", creatorId: "creator-008" } },
-  { email: "dev@cinegen.demo", password: "Demo@123", session: { userId: "creator-009", email: "dev@cinegen.demo", role: "creator" as UserRole, name: "Dev Patel", creatorId: "creator-009" } },
-  { email: "yuna@cinegen.demo", password: "Demo@123", session: { userId: "creator-010", email: "yuna@cinegen.demo", role: "creator" as UserRole, name: "Yuna Kim", creatorId: "creator-010" } },
-  { email: "rohan@cinegen.demo", password: "Demo@123", session: { userId: "creator-011", email: "rohan@cinegen.demo", role: "creator" as UserRole, name: "Rohan Mathur", creatorId: "creator-011" } },
-  { email: "aisha@cinegen.demo", password: "Demo@123", session: { userId: "creator-012", email: "aisha@cinegen.demo", role: "creator" as UserRole, name: "Aisha Okafor", creatorId: "creator-012" } },
-  { email: "sameer@cinegen.demo", password: "Demo@123", session: { userId: "creator-013", email: "sameer@cinegen.demo", role: "creator" as UserRole, name: "Sameer Joshi", creatorId: "creator-013" } },
-  { email: "carlos@cinegen.demo", password: "Demo@123", session: { userId: "creator-014", email: "carlos@cinegen.demo", role: "creator" as UserRole, name: "Carlos Rivera", creatorId: "creator-014" } },
-  { email: "meera@cinegen.demo", password: "Demo@123", session: { userId: "creator-015", email: "meera@cinegen.demo", role: "creator" as UserRole, name: "Meera Iyer", creatorId: "creator-015" } },
-  { email: "tanvir@cinegen.demo", password: "Demo@123", session: { userId: "creator-016", email: "tanvir@cinegen.demo", role: "creator" as UserRole, name: "Tanvir Sheikh", creatorId: "creator-016" } },
-  { email: "natasha@cinegen.demo", password: "Demo@123", session: { userId: "creator-017", email: "natasha@cinegen.demo", role: "creator" as UserRole, name: "Natasha Pinto", creatorId: "creator-017" } },
-  { email: "ishaan@cinegen.demo", password: "Demo@123", session: { userId: "creator-018", email: "ishaan@cinegen.demo", role: "creator" as UserRole, name: "Ishaan Verma", creatorId: "creator-018" } },
-];
+import { createClient } from "@/lib/supabase";
 
 function setCookie(name: string, value: string) {
   if (typeof document === "undefined") return;
@@ -50,83 +24,181 @@ function notifyAll() {
 export function useSession() {
   const [session, setSessionState] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const supabase = createClient();
 
   useEffect(() => {
-    // Initial read
-    const stored = storage.read<Session>("cinegen_session");
-    setSessionState(stored);
-    setLoading(false);
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session: authSession } }: any) => {
+      if (authSession) {
+        convertAuthSessionToSession(authSession).then((sess) => {
+          setSessionState(sess);
+          if (sess) {
+            setCookie("cinegen_role", sess.role);
+          }
+          setLoading(false);
+        });
+      } else {
+        setLoading(false);
+      }
+    });
 
-    // Subscribe to global updates
-    const handler = () => {
-      const updated = storage.read<Session>("cinegen_session");
-      setSessionState(updated);
-    };
-    listeners.add(handler);
-
-    // Also listen to storage events (cross-tab)
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === "cinegen_session") handler();
-    };
-    window.addEventListener("storage", onStorage);
+    // Listen to auth state changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event: string, authSession: any) => {
+      if (authSession) {
+        const sess = await convertAuthSessionToSession(authSession);
+        setSessionState(sess);
+        if (sess) {
+          setCookie("cinegen_role", sess.role);
+        }
+        notifyAll();
+      } else {
+        setSessionState(null);
+        removeCookie("cinegen_role");
+        notifyAll();
+      }
+    });
 
     return () => {
-      listeners.delete(handler);
-      window.removeEventListener("storage", onStorage);
+      subscription.unsubscribe();
     };
-  }, []);
+  }, [supabase]);
 
-  const writeSession = (sess: Session) => {
-    storage.write("cinegen_session", sess);
-    setCookie("cinegen_role", sess.role);
-    setSessionState(sess);
-    notifyAll();
+  // Convert Supabase auth session to our Session type
+  const convertAuthSessionToSession = async (
+    authSession: any
+  ): Promise<Session | null> => {
+    if (!authSession?.user) return null;
+
+    const user = authSession.user;
+    const metadata = user.user_metadata || {};
+
+    // Fetch user details from database
+    const { data: userData } = await supabase
+      .from("users")
+      .select("id, email, role, name")
+      .eq("id", user.id)
+      .single();
+
+    if (!userData) {
+      return {
+        userId: user.id,
+        email: user.email || "",
+        role: (metadata.role || "guest") as UserRole,
+        name: metadata.name || user.email?.split("@")[0] || "User",
+        loginAt: new Date().toISOString(),
+        access_token: authSession.access_token,
+        refresh_token: authSession.refresh_token,
+        expires_at: authSession.expires_at,
+      };
+    }
+
+    // Get profile ID
+    let profileId: string | undefined;
+    if (userData.role === "creator") {
+      const { data: creatorProfile } = await supabase
+        .from("creator_profiles")
+        .select("id")
+        .eq("user_id", userData.id)
+        .single();
+      profileId = creatorProfile?.id;
+    } else if (userData.role === "brand") {
+      const { data: brandProfile } = await supabase
+        .from("brand_profiles")
+        .select("id")
+        .eq("user_id", userData.id)
+        .single();
+      profileId = brandProfile?.id;
+    }
+
+    return {
+      userId: userData.id,
+      email: userData.email,
+      role: userData.role as UserRole,
+      name: userData.name,
+      loginAt: new Date().toISOString(),
+      access_token: authSession.access_token,
+      refresh_token: authSession.refresh_token,
+      expires_at: authSession.expires_at,
+      ...(userData.role === "creator" ? { creatorId: profileId } : {}),
+      ...(userData.role === "brand" ? { brandId: profileId } : {}),
+    };
   };
 
-  const login = useCallback((email: string, password: string): boolean => {
-    // Check demo credentials first
-    const cred = DEMO_CREDENTIALS.find(
-      (c) => c.email === email && c.password === password
-    );
-    if (cred) {
-      const sess: Session = { ...cred.session, loginAt: new Date().toISOString() };
-      writeSession(sess);
-      return true;
-    }
-    // Check registered users (password stored at registration time isn't verified here
-    // since we store sessions not passwords — check email match and auto-login)
-    const registered = storage.read<Session[]>("cinegen_registered_users") ?? [];
-    const found = registered.find((u) => u.email === email.toLowerCase().trim());
-    if (found) {
-      const sess: Session = { ...found, loginAt: new Date().toISOString() };
-      writeSession(sess);
-      return true;
-    }
-    return false;
-  }, []);
+  const login = useCallback(
+    async (email: string, password: string): Promise<boolean> => {
+      try {
+        // Call our API endpoint which handles both demo and regular login
+        const response = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
 
-  const loginAsRole = useCallback((role: "brand" | "creator") => {
-    const cred = role === "brand"
-      ? DEMO_CREDENTIALS.find((c) => c.email === "brand@cinegen.demo")!
-      : DEMO_CREDENTIALS.find((c) => c.email === "creator@cinegen.demo")!;
-    const sess: Session = { ...cred.session, loginAt: new Date().toISOString() };
-    writeSession(sess);
-  }, []);
+        if (!response.ok) {
+          return false;
+        }
 
-  const logout = useCallback(() => {
-    storage.remove("cinegen_session");
-    removeCookie("cinegen_role");
+        const data = await response.json();
+
+        // For demo accounts, we need to manually set the session
+        if (data.isDemo) {
+          // Create a session object from the API response
+          const sess: Session = {
+            userId: data.user.id,
+            email: data.user.email,
+            role: data.user.role as UserRole,
+            name: data.user.name,
+            loginAt: new Date().toISOString(),
+            ...(data.user.role === "creator" ? { creatorId: data.profileId } : {}),
+            ...(data.user.role === "brand" ? { brandId: data.profileId } : {}),
+          };
+          setSessionState(sess);
+          setCookie("cinegen_role", sess.role);
+          notifyAll();
+          return true;
+        }
+
+        // For regular login, Supabase auth will handle the session via onAuthStateChange
+        if (data.session) {
+          await supabase.auth.setSession(data.session);
+          return true;
+        }
+
+        return false;
+      } catch (error) {
+        console.error("Login error:", error);
+        return false;
+      }
+    },
+    [supabase]
+  );
+
+  const loginAsRole = useCallback(
+    async (role: "brand" | "creator") => {
+      const email =
+        role === "brand" ? "brand@cinegen.demo" : "creator@cinegen.demo";
+      await login(email, "Demo@123");
+    },
+    [login]
+  );
+
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut();
     setSessionState(null);
+    removeCookie("cinegen_role");
     notifyAll();
-  }, []);
+  }, [supabase]);
 
-  const switchRole = useCallback((role: UserRole) => {
-    if (role === "brand" || role === "creator") {
-      const cred = DEMO_CREDENTIALS.find((c) => c.session.role === role)!;
-      const sess: Session = { ...cred.session, loginAt: new Date().toISOString() };
-      writeSession(sess);
+  const refreshSession = useCallback(async () => {
+    const { data, error } = await supabase.auth.refreshSession();
+    if (error) {
+      console.error("Session refresh error:", error);
+      return false;
     }
-  }, []);
+    return !!data.session;
+  }, [supabase]);
 
-  return { session, loading, login, loginAsRole, logout, switchRole };
+  return { session, loading, login, loginAsRole, logout, refreshSession };
 }

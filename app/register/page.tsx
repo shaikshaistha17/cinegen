@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Film, Eye, EyeOff, Sparkles, Zap, ArrowRight, CheckCircle } from 'lucide-react';
-import { signUp } from '@/lib/auth';
 import { toast } from 'sonner';
 
 type Role = 'brand' | 'creator';
@@ -35,6 +34,9 @@ export default function RegisterPage() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,16 +46,69 @@ export default function RegisterPage() {
     }
     setLoading(true);
     try {
-      await signUp(email.trim(), password, name.trim(), role);
-      setDone(true);
-      toast.success(`Welcome to CineGen, ${name.trim()}!`);
-      setTimeout(() => {
-        window.location.href = role === 'creator' ? '/onboarding' : '/dashboard';
-      }, 1000);
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: email.trim(), 
+          password, 
+          name: name.trim(), 
+          role 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed');
+      }
+
+      if (data.message && data.message.includes('email')) {
+        setNeedsVerification(true);
+        toast.info('Check your email for verification code');
+      } else {
+        setDone(true);
+        toast.success(`Welcome to CineGen, ${name.trim()}!`);
+        setTimeout(() => {
+          window.location.href = role === 'creator' ? '/onboarding' : '/dashboard';
+        }, 1000);
+      }
     } catch (err: any) {
       toast.error(err.message || 'Signup failed. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otp || otp.length !== 6) {
+      toast.error('Please enter a valid 6-digit OTP');
+      return;
+    }
+    setVerifyingOtp(true);
+    try {
+      const response = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), otp }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'OTP verification failed');
+      }
+
+      setDone(true);
+      toast.success('Email verified! Welcome to CineGen!');
+      setTimeout(() => {
+        window.location.href = role === 'creator' ? '/onboarding' : '/dashboard';
+      }, 1000);
+    } catch (err: any) {
+      toast.error(err.message || 'Invalid OTP. Please try again.');
+    } finally {
+      setVerifyingOtp(false);
     }
   };
 
@@ -100,24 +155,26 @@ export default function RegisterPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
             className="glass rounded-2xl border border-white/10 p-6">
-            {/* Role picker */}
-            <div className="flex gap-2 mb-6 p-1 bg-white/5 rounded-xl">
-              {(['brand', 'creator'] as Role[]).map((r) => (
-                <button key={r} onClick={() => setRole(r)}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                    role === r
-                      ? r === 'brand'
-                        ? 'bg-gradient-to-r from-violet-600 to-violet-500 text-white shadow-lg shadow-violet-500/25'
-                        : 'bg-gradient-to-r from-cyan-600 to-cyan-500 text-white shadow-lg shadow-cyan-500/25'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}>
-                  {r === 'brand' ? <Sparkles className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
-                  {r === 'brand' ? "I'm a Brand" : "I'm a Creator"}
-                </button>
-              ))}
-            </div>
+            {!needsVerification ? (
+              <>
+                {/* Role picker */}
+                <div className="flex gap-2 mb-6 p-1 bg-white/5 rounded-xl">
+                  {(['brand', 'creator'] as Role[]).map((r) => (
+                    <button key={r} onClick={() => setRole(r)}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                        role === r
+                          ? r === 'brand'
+                            ? 'bg-gradient-to-r from-violet-600 to-violet-500 text-white shadow-lg shadow-violet-500/25'
+                            : 'bg-gradient-to-r from-cyan-600 to-cyan-500 text-white shadow-lg shadow-cyan-500/25'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}>
+                      {r === 'brand' ? <Sparkles className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
+                      {r === 'brand' ? "I'm a Brand" : "I'm a Creator"}
+                    </button>
+                  ))}
+                </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1.5">
                   {role === 'brand' ? 'Brand / Company Name' : 'Your Full Name'}
@@ -164,6 +221,52 @@ export default function RegisterPage() {
                 By signing up you agree to our Terms & Privacy Policy
               </p>
             </form>
+              </>
+            ) : (
+              <div className="space-y-4">
+                <div className="text-center mb-6">
+                  <h2 className="font-semibold text-lg mb-2">Verify your email</h2>
+                  <p className="text-sm text-muted-foreground">
+                    We sent a 6-digit code to <span className="text-foreground font-medium">{email}</span>
+                  </p>
+                </div>
+
+                <form onSubmit={handleVerifyOtp} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5">Enter OTP</label>
+                    <input
+                      type="text"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="123456"
+                      maxLength={6}
+                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm text-center tracking-widest text-lg focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20 placeholder:text-muted-foreground transition-all"
+                      required
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={verifyingOtp || otp.length !== 6}
+                    className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold text-white transition-all disabled:opacity-50 shadow-lg bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 shadow-violet-500/25"
+                  >
+                    {verifyingOtp ? (
+                      <span className="animate-pulse">Verifying...</span>
+                    ) : (
+                      <>Verify & Continue <ArrowRight className="w-4 h-4" /></>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setNeedsVerification(false)}
+                    className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Back to registration
+                  </button>
+                </form>
+              </div>
+            )}
           </motion.div>
 
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}

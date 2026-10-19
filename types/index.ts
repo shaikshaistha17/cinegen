@@ -188,6 +188,15 @@ export interface Session {
   creatorId?: string;
   brandId?: string;
   loginAt: string;
+  access_token?: string;
+  refresh_token?: string;
+  expires_at?: number;
+}
+
+export interface OTPVerification {
+  email: string;
+  code: string;
+  expiresAt: string;
 }
 
 export interface Engagement {
