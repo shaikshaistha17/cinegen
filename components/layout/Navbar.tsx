@@ -52,32 +52,44 @@ export function Navbar() {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-white/5"
-      style={{ background: "rgba(10,10,15,0.9)", backdropFilter: "blur(20px)" }}>
+    <nav className="sticky top-0 z-50 border-b border-white/10 glass-strong"
+      style={{ background: "rgba(10,10,15,0.95)" }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
 
-          {/* Logo */}
+          {/* Logo with gradient text */}
           <Link href="/" className="flex items-center gap-2 group flex-shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-violet-500/25">
+            <motion.div 
+              whileHover={{ scale: 1.1, rotate: 5 }}
+              className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-violet-500/25">
               <Film className="w-4 h-4 text-white" />
-            </div>
+            </motion.div>
             <span className="font-display font-bold text-xl tracking-tight">
-              Cine<span className="gradient-text">Gen</span>
+              Cine<span className="gradient-primary">Gen</span>
             </span>
           </Link>
 
-          {/* Desktop Nav Links */}
+          {/* Desktop Nav Links with animated gradient underline */}
           <div className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => (
               <Link key={link.href} href={link.href}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                className={`relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                   pathname === link.href || pathname.startsWith(link.href + "/")
-                    ? "bg-violet-500/20 text-violet-300"
-                    : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                    ? "text-violet-300"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}>
                 <link.icon className="w-4 h-4" />
                 {link.label}
+                {/* Animated gradient underline */}
+                {(pathname === link.href || pathname.startsWith(link.href + "/")) && (
+                  <motion.div
+                    layoutId="navbar-underline"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-violet-500 to-cyan-500 rounded-full"
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: 1 }}
+                    transition={{ duration: 0.3 }}
+                  />
+                )}
               </Link>
             ))}
 
@@ -97,11 +109,12 @@ export function Navbar() {
               <AnimatePresence>
                 {toolsOpen && (
                   <motion.div
-                    initial={{ opacity: 0, y: -8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    className="absolute top-full left-0 mt-2 w-56 rounded-xl shadow-2xl overflow-hidden z-50 border border-white/10"
-                    style={{ background: "rgba(10,10,15,0.97)", backdropFilter: "blur(20px)" }}
+                    initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute top-full left-0 mt-2 w-56 rounded-xl shadow-2xl overflow-hidden z-50 border border-white/10 glass-strong"
+                    style={{ background: "rgba(10,10,15,0.97)" }}
                   >
                     {toolLinks.map((tool) => (
                       <Link key={tool.href} href={tool.href}
@@ -126,10 +139,14 @@ export function Navbar() {
               <div className="w-8 h-8 rounded-full bg-white/5 animate-pulse" />
             ) : activeUser ? (
               <>
-                {/* User info */}
+                {/* User info with online status */}
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center text-white text-sm font-bold shadow-lg flex-shrink-0">
-                    {activeUser.name.charAt(0)}
+                  <div className="relative">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center text-white text-sm font-bold shadow-lg flex-shrink-0">
+                      {activeUser.name.charAt(0)}
+                    </div>
+                    {/* Online status - pulsing green dot */}
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-background animate-pulse-glow" />
                   </div>
                   <div className="leading-tight">
                     <div className="text-sm font-semibold text-foreground">{activeUser.name}</div>
@@ -141,7 +158,7 @@ export function Navbar() {
 
                 {activeUser.role === "brand" && (
                   <Link href="/briefs/new"
-                    className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-violet-600 to-violet-500 text-white rounded-lg text-sm font-semibold hover:from-violet-500 hover:to-violet-400 transition-all shadow-lg shadow-violet-500/25">
+                    className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-violet-600 to-violet-500 text-white rounded-lg text-sm font-semibold hover:from-violet-500 hover:to-violet-400 hover:scale-105 transition-all shadow-lg shadow-violet-500/25 btn-glow">
                     <Plus className="w-3.5 h-3.5" /> Post Brief
                   </Link>
                 )}

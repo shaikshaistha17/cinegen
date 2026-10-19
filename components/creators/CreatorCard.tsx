@@ -1,8 +1,9 @@
 "use client";
+import { useState } from "react";
 import Link from "next/link";
-import { Star, CheckCircle, MapPin } from "lucide-react";
+import { Star, CheckCircle, MapPin, Eye } from "lucide-react";
 import { CreatorProfile } from "@/types";
-import { motion } from "framer-motion";
+import { motion, useMotionValue, useTransform } from "framer-motion";
 
 const BADGE_STYLES: Record<string, string> = {
   Studio: "bg-violet-500/90 text-white border border-violet-400/30",
@@ -37,33 +38,85 @@ const TOOL_COLORS: Record<string, string> = {
 };
 
 export function CreatorCard({ creator, index = 0 }: { creator: CreatorProfile; index?: number }) {
+  const [isHovered, setIsHovered] = useState(false);
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  
+  const rotateX = useTransform(y, [-100, 100], [5, -5]);
+  const rotateY = useTransform(x, [-100, 100], [-5, 5]);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    x.set(e.clientX - centerX);
+    y.set(e.clientY - centerY);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    x.set(0);
+    y.set(0);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04 }}
+      style={{ 
+        rotateX: isHovered ? rotateX : 0, 
+        rotateY: isHovered ? rotateY : 0,
+        transformStyle: "preserve-3d"
+      }}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={handleMouseLeave}
     >
       <Link href={`/creators/${creator.id}`}>
-        <div className="rounded-2xl border border-white/8 hover:border-violet-500/40 transition-all duration-300 group hover:-translate-y-1.5 hover:shadow-xl hover:shadow-violet-500/10 cursor-pointer overflow-hidden h-full"
-          style={{ background: "rgba(255,255,255,0.03)", backdropFilter: "blur(12px)" }}>
+        <div className="glass-card rounded-2xl border border-white/8 hover:border-violet-500/40 transition-all duration-500 group hover:-translate-y-2 hover:shadow-2xl hover:shadow-violet-500/20 cursor-pointer overflow-hidden h-full relative"
+          style={{ 
+            background: "rgba(255,255,255,0.05)", 
+            backdropFilter: "blur(16px)",
+          }}>
+
+          {/* Animated gradient border on hover */}
+          <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-purple-500 via-indigo-500 to-teal-500 animate-gradient-shift blur-sm" 
+              style={{ padding: "1px", margin: "-1px" }} />
+          </div>
 
           {/* Cover — real image */}
           <div className="relative h-36 overflow-hidden bg-gradient-to-br from-violet-900 to-indigo-900">
             <img
               src={creator.coverUrl}
               alt=""
-              className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500"
+              className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
 
             {/* Animated shimmer on hover */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
 
-            {/* Badge */}
-            <div className={`absolute top-3 right-3 text-xs px-2 py-0.5 rounded-full font-semibold backdrop-blur-sm ${BADGE_STYLES[creator.verification.badge]}`}>
+            {/* Badge with pulsing glow */}
+            <div className={`absolute top-3 right-3 text-xs px-2 py-0.5 rounded-full font-semibold backdrop-blur-sm ${BADGE_STYLES[creator.verification.badge]} ${
+              creator.verification.badge === "Studio" ? "animate-pulse-glow" : ""
+            }`}>
               {creator.verification.badge === "Studio" && "★ "}
               {creator.verification.badge}
             </div>
+
+            {/* View Profile overlay on hover */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: isHovered ? 1 : 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center"
+            >
+              <div className="flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white font-semibold text-sm">
+                <Eye className="w-4 h-4" />
+                View Profile
+              </div>
+            </motion.div>
 
             {/* Availability */}
             <div className={`absolute top-3 left-3 text-xs font-bold flex items-center gap-1 px-2 py-0.5 rounded-full backdrop-blur-sm ${
@@ -89,7 +142,7 @@ export function CreatorCard({ creator, index = 0 }: { creator: CreatorProfile; i
           <div className="p-4">
             {/* Avatar + name row */}
             <div className="flex items-start gap-3 -mt-9 mb-3 relative z-10">
-              <div className="w-14 h-14 rounded-xl border-2 border-background overflow-hidden shadow-xl flex-shrink-0 bg-gradient-to-br from-violet-600 to-cyan-600 flex items-center justify-center text-white font-bold text-xl">
+              <div className="w-14 h-14 rounded-xl border-2 border-background overflow-hidden shadow-xl flex-shrink-0 bg-gradient-to-br from-violet-600 to-cyan-600 flex items-center justify-center text-white font-bold text-xl ring-2 ring-purple-500/50 group-hover:ring-purple-400 transition-all">
                 {creator.name.charAt(0)}
               </div>
               <div className="pt-5">
@@ -100,14 +153,16 @@ export function CreatorCard({ creator, index = 0 }: { creator: CreatorProfile; i
 
             <p className="text-xs text-muted-foreground line-clamp-2 mb-3 leading-relaxed">{creator.headline}</p>
 
-            {/* Tools */}
+            {/* Tools with hover scale + glow */}
             <div className="flex flex-wrap gap-1 mb-4">
               {creator.verifiedTools.slice(0, 4).map((t) => (
-                <span key={t.name}
-                  className={`flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-md font-medium ${TOOL_COLORS[t.name] ?? "bg-white/5 text-muted-foreground"}`}>
+                <motion.span 
+                  key={t.name}
+                  whileHover={{ scale: 1.05 }}
+                  className={`flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded-md font-medium transition-all hover:shadow-lg ${TOOL_COLORS[t.name] ?? "bg-white/5 text-muted-foreground"}`}>
                   {t.verified && <CheckCircle className="w-2.5 h-2.5" />}
                   {t.name}
-                </span>
+                </motion.span>
               ))}
               {creator.verifiedTools.length > 4 && (
                 <span className="text-xs px-1.5 py-0.5 bg-white/5 rounded-md text-muted-foreground">+{creator.verifiedTools.length - 4}</span>

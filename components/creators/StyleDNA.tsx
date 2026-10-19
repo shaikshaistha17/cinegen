@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { CreatorProfile } from "@/types";
 
@@ -71,9 +72,10 @@ function getStyleScore(creator: CreatorProfile, key: string): number {
 }
 
 function RadarChart({ scores }: { scores: Record<string, number> }) {
-  const size = 160;
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const size = 180;
   const center = size / 2;
-  const radius = 60;
+  const radius = 70;
   const n = AXES.length;
 
   const getPoint = (i: number, r: number) => {
@@ -93,43 +95,141 @@ function RadarChart({ scores }: { scores: Record<string, number> }) {
 
   const gridLevels = [0.25, 0.5, 0.75, 1.0];
 
+  const pathLength = scorePoints.reduce((acc, p, i) => {
+    if (i === 0) return 0;
+    const prev = scorePoints[i - 1];
+    return acc + Math.sqrt((p.x - prev.x) ** 2 + (p.y - prev.y) ** 2);
+  }, 0);
+
   return (
-    <svg width={size} height={size} className="mx-auto">
-      {/* Grid */}
-      {gridLevels.map((level) => {
-        const points = AXES.map((_, i) => {
-          const p = getPoint(i, radius * level);
-          return `${p.x},${p.y}`;
-        }).join(" ");
-        return <polygon key={level} points={points} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="1" />;
-      })}
+    <div className="relative">
+      <svg width={size} height={size} className="mx-auto">
+        {/* Radial gradient for fill */}
+        <defs>
+          <radialGradient id="radarGradient" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="rgba(139,92,246,0.4)" />
+            <stop offset="50%" stopColor="rgba(99,102,241,0.3)" />
+            <stop offset="100%" stopColor="rgba(20,184,166,0.2)" />
+          </radialGradient>
+        </defs>
 
-      {/* Axis lines */}
-      {AXES.map((_, i) => {
-        const outer = getPoint(i, radius);
-        return <line key={i} x1={center} y1={center} x2={outer.x} y2={outer.y} stroke="rgba(255,255,255,0.08)" strokeWidth="1" />;
-      })}
+        {/* Grid levels */}
+        {gridLevels.map((level, idx) => {
+          const points = AXES.map((_, i) => {
+            const p = getPoint(i, radius * level);
+            return `${p.x},${p.y}`;
+          }).join(" ");
+          return (
+            <motion.polygon
+              key={level}
+              points={points}
+              fill="none"
+              stroke="rgba(255,255,255,0.08)"
+              strokeWidth="1"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: idx * 0.1 }}
+            />
+          );
+        })}
 
-      {/* Score polygon */}
-      <polygon points={polygonPoints} fill="rgba(139,92,246,0.2)" stroke="#8b5cf6" strokeWidth="1.5" />
+        {/* Axis lines */}
+        {AXES.map((_, i) => {
+          const outer = getPoint(i, radius);
+          return (
+            <motion.line
+              key={i}
+              x1={center}
+              y1={center}
+              x2={outer.x}
+              y2={outer.y}
+              stroke="rgba(255,255,255,0.08)"
+              strokeWidth="1"
+              initial={{ opacity: 0, pathLength: 0 }}
+              animate={{ opacity: 1, pathLength: 1 }}
+              transition={{ delay: 0.2 + i * 0.05 }}
+            />
+          );
+        })}
 
-      {/* Score dots */}
-      {scorePoints.map((p, i) => (
-        <circle key={i} cx={p.x} cy={p.y} r="3" fill={AXES[i].color} />
-      ))}
+        {/* Animated score polygon */}
+        <motion.polygon
+          points={polygonPoints}
+          fill="url(#radarGradient)"
+          stroke="#8b5cf6"
+          strokeWidth="2"
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.5, duration: 0.6, ease: "easeOut" }}
+        />
 
-      {/* Labels */}
-      {AXES.map((axis, i) => {
-        const labelPoint = getPoint(i, radius + 14);
-        return (
-          <text key={axis.key} x={labelPoint.x} y={labelPoint.y}
-            textAnchor="middle" dominantBaseline="middle"
-            className="fill-muted-foreground text-[9px]" fontSize="9" fill="rgba(255,255,255,0.5)">
-            {axis.label}
-          </text>
-        );
-      })}
-    </svg>
+        {/* Score dots with pulse on hover */}
+        {scorePoints.map((p, i) => (
+          <g key={i}>
+            <motion.circle
+              cx={p.x}
+              cy={p.y}
+              r={hoveredIndex === i ? "6" : "4"}
+              fill={AXES[i].color}
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.6 + i * 0.05 }}
+              onMouseEnter={() => setHoveredIndex(i)}
+              onMouseLeave={() => setHoveredIndex(null)}
+              className="cursor-pointer"
+            />
+            {hoveredIndex === i && (
+              <motion.circle
+                cx={p.x}
+                cy={p.y}
+                r="8"
+                fill="none"
+                stroke={AXES[i].color}
+                strokeWidth="2"
+                initial={{ opacity: 0.8, scale: 0.8 }}
+                animate={{ opacity: 0, scale: 1.5 }}
+                transition={{ duration: 1, repeat: Infinity }}
+              />
+            )}
+          </g>
+        ))}
+
+        {/* Axis labels */}
+        {AXES.map((axis, i) => {
+          const labelPoint = getPoint(i, radius + 18);
+          return (
+            <motion.text
+              key={axis.key}
+              x={labelPoint.x}
+              y={labelPoint.y}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              className="text-[10px] font-medium"
+              fill={hoveredIndex === i ? axis.color : "rgba(255,255,255,0.6)"}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.7 + i * 0.05 }}
+            >
+              {axis.label}
+            </motion.text>
+          );
+        })}
+      </svg>
+
+      {/* Tooltip */}
+      {hoveredIndex !== null && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="absolute top-0 left-1/2 -translate-x-1/2 bg-black/90 backdrop-blur-sm px-3 py-2 rounded-lg border border-white/20 text-xs whitespace-nowrap"
+        >
+          <div className="font-semibold" style={{ color: AXES[hoveredIndex].color }}>
+            {AXES[hoveredIndex].label}
+          </div>
+          <div className="text-white">{scores[AXES[hoveredIndex].key]} / 100</div>
+        </motion.div>
+      )}
+    </div>
   );
 }
 

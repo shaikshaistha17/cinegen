@@ -1,6 +1,7 @@
 "use client";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, CheckCircle, Info, Lightbulb, X, Shield, Zap } from "lucide-react";
+import { AlertTriangle, CheckCircle, Info, Lightbulb, X, Shield, Zap, ChevronDown, ChevronUp } from "lucide-react";
 
 type FormData = {
   campaignTitle: string;
@@ -85,106 +86,251 @@ export function BriefIntelligence({ form }: { form: FormData }) {
   const warnings = issues.filter((i) => i.type === "warning");
   const suggestions = issues.filter((i) => i.type === "suggestion");
 
+  const [expandedSections, setExpandedSections] = useState({
+    errors: true,
+    warnings: true,
+    suggestions: false,
+  });
+
   const scoreColor = score >= 80 ? "text-green-400" : score >= 50 ? "text-amber-400" : "text-red-400";
+  const scoreStroke = score >= 80 ? "#10b981" : score >= 50 ? "#f59e0b" : "#ef4444";
   const scoreGradient = score >= 80 ? "from-green-500 to-emerald-500" : score >= 50 ? "from-amber-500 to-orange-500" : "from-red-500 to-red-600";
   const scoreLabel = score >= 80 ? "Strong Brief" : score >= 50 ? "Needs Work" : "Incomplete";
 
+  const circumference = 2 * Math.PI * 54;
+  const strokeDashoffset = circumference - (score / 100) * circumference;
+
   return (
-    <div className="glass rounded-2xl border border-white/10 p-5 space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-violet-500/20 flex items-center justify-center">
-            <Shield className="w-4 h-4 text-violet-400" />
+    <div className="glass-card rounded-2xl border border-white/10 p-6 space-y-5 bg-gradient-to-br from-purple-950/20 to-transparent">
+      {/* Header with animated score ring */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
+            <Shield className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h3 className="font-semibold text-sm">Brief Intelligence</h3>
-            <p className="text-xs text-muted-foreground">AI-powered brief audit</p>
+            <h3 className="font-semibold text-base">Brief Intelligence</h3>
+            <p className="text-xs text-muted-foreground">AI-powered real-time audit</p>
           </div>
         </div>
-        <div className="text-right">
-          <div className={`text-2xl font-display font-bold ${scoreColor}`}>{score}</div>
-          <div className={`text-xs font-medium ${scoreColor}`}>{scoreLabel}</div>
-        </div>
-      </div>
 
-      {/* Score bar */}
-      <div className="w-full bg-white/5 rounded-full h-2">
-        <motion.div
-          className={`h-2 rounded-full bg-gradient-to-r ${scoreGradient}`}
-          initial={{ width: 0 }}
-          animate={{ width: `${score}%` }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-        />
+        {/* Animated score ring */}
+        <div className="relative">
+          <svg className="w-24 h-24 -rotate-90" viewBox="0 0 120 120">
+            {/* Background circle */}
+            <circle
+              cx="60"
+              cy="60"
+              r="54"
+              fill="none"
+              stroke="rgba(255,255,255,0.05)"
+              strokeWidth="8"
+            />
+            {/* Animated score circle */}
+            <motion.circle
+              cx="60"
+              cy="60"
+              r="54"
+              fill="none"
+              stroke={scoreStroke}
+              strokeWidth="8"
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              initial={{ strokeDashoffset: circumference }}
+              animate={{ strokeDashoffset }}
+              transition={{ duration: 1.2, ease: "easeOut" }}
+            />
+          </svg>
+          {/* Score number with count-up */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <motion.div
+              className={`text-3xl font-display font-bold ${scoreColor}`}
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3, duration: 0.4 }}
+            >
+              {score}
+            </motion.div>
+            <div className={`text-[10px] font-medium ${scoreColor} -mt-1`}>{scoreLabel}</div>
+          </div>
+        </div>
       </div>
 
       {/* Summary pills */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {errors.length > 0 && (
-          <span className="flex items-center gap-1 text-xs px-2 py-1 bg-red-500/10 border border-red-500/20 text-red-400 rounded-full">
+          <motion.span
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex items-center gap-1 text-xs px-2.5 py-1 bg-red-500/10 border border-red-500/20 text-red-400 rounded-full animate-pulse"
+          >
             <X className="w-3 h-3" /> {errors.length} error{errors.length > 1 ? "s" : ""}
-          </span>
+          </motion.span>
         )}
         {warnings.length > 0 && (
-          <span className="flex items-center gap-1 text-xs px-2 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-full">
+          <motion.span
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1 }}
+            className="flex items-center gap-1 text-xs px-2.5 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-full"
+          >
             <AlertTriangle className="w-3 h-3" /> {warnings.length} warning{warnings.length > 1 ? "s" : ""}
-          </span>
+          </motion.span>
         )}
         {suggestions.length > 0 && (
-          <span className="flex items-center gap-1 text-xs px-2 py-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-full">
+          <motion.span
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            className="flex items-center gap-1 text-xs px-2.5 py-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-full"
+          >
             <Lightbulb className="w-3 h-3" /> {suggestions.length} tip{suggestions.length > 1 ? "s" : ""}
-          </span>
+          </motion.span>
         )}
         {issues.length === 0 && (
-          <span className="flex items-center gap-1 text-xs px-2 py-1 bg-green-500/10 border border-green-500/20 text-green-400 rounded-full">
+          <motion.span
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex items-center gap-1 text-xs px-2.5 py-1 bg-green-500/10 border border-green-500/20 text-green-400 rounded-full"
+          >
             <CheckCircle className="w-3 h-3" /> All good!
-          </span>
+          </motion.span>
         )}
       </div>
 
-      {/* Issues list */}
-      {issues.length > 0 && (
-        <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-          {[...errors, ...warnings, ...suggestions].map((issue, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.05 }}
-              className={`p-3 rounded-xl border text-xs space-y-1 ${
-                issue.type === "error"
-                  ? "bg-red-500/5 border-red-500/20"
-                  : issue.type === "warning"
-                  ? "bg-amber-500/5 border-amber-500/20"
-                  : "bg-blue-500/5 border-blue-500/20"
-              }`}
-            >
-              <div className="flex items-center gap-1.5">
-                {issue.type === "error" ? (
-                  <X className="w-3.5 h-3.5 text-red-400 flex-shrink-0" />
-                ) : issue.type === "warning" ? (
-                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-                ) : (
-                  <Lightbulb className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
-                )}
-                <span className={`font-semibold ${
-                  issue.type === "error" ? "text-red-300" : issue.type === "warning" ? "text-amber-300" : "text-blue-300"
-                }`}>{issue.field}</span>
-                <span className="text-muted-foreground">— {issue.message}</span>
-              </div>
-              {issue.fix && (
-                <p className="text-muted-foreground pl-5 leading-relaxed">💡 {issue.fix}</p>
-              )}
-            </motion.div>
-          ))}
+      {/* Expandable sections */}
+      {errors.length > 0 && (
+        <div>
+          <button
+            onClick={() => setExpandedSections(s => ({ ...s, errors: !s.errors }))}
+            className="w-full flex items-center justify-between text-sm font-medium text-red-400 mb-2"
+          >
+            <span>Errors ({errors.length})</span>
+            {expandedSections.errors ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+          <AnimatePresence>
+            {expandedSections.errors && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="space-y-2 overflow-hidden"
+              >
+                {errors.map((issue, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="p-3 rounded-xl border bg-red-500/5 border-red-500/20 text-xs space-y-1"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <X className="w-3.5 h-3.5 text-red-400 flex-shrink-0 animate-pulse" />
+                      <span className="font-semibold text-red-300">{issue.field}</span>
+                      <span className="text-muted-foreground">— {issue.message}</span>
+                    </div>
+                    {issue.fix && (
+                      <p className="text-muted-foreground pl-5 leading-relaxed">💡 {issue.fix}</p>
+                    )}
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+
+      {warnings.length > 0 && (
+        <div>
+          <button
+            onClick={() => setExpandedSections(s => ({ ...s, warnings: !s.warnings }))}
+            className="w-full flex items-center justify-between text-sm font-medium text-amber-400 mb-2"
+          >
+            <span>Warnings ({warnings.length})</span>
+            {expandedSections.warnings ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+          <AnimatePresence>
+            {expandedSections.warnings && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="space-y-2 overflow-hidden"
+              >
+                {warnings.map((issue, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="p-3 rounded-xl border bg-amber-500/5 border-amber-500/20 text-xs space-y-1"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                      <span className="font-semibold text-amber-300">{issue.field}</span>
+                      <span className="text-muted-foreground">— {issue.message}</span>
+                    </div>
+                    {issue.fix && (
+                      <p className="text-muted-foreground pl-5 leading-relaxed">💡 {issue.fix}</p>
+                    )}
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+
+      {suggestions.length > 0 && (
+        <div>
+          <button
+            onClick={() => setExpandedSections(s => ({ ...s, suggestions: !s.suggestions }))}
+            className="w-full flex items-center justify-between text-sm font-medium text-blue-400 mb-2"
+          >
+            <span>Tips ({suggestions.length})</span>
+            {expandedSections.suggestions ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+          <AnimatePresence>
+            {expandedSections.suggestions && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="space-y-2 overflow-hidden"
+              >
+                {suggestions.map((issue, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="p-3 rounded-xl border bg-blue-500/5 border-blue-500/20 text-xs space-y-1"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <Lightbulb className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
+                      <span className="font-semibold text-blue-300">{issue.field}</span>
+                      <span className="text-muted-foreground">— {issue.message}</span>
+                    </div>
+                    {issue.fix && (
+                      <p className="text-muted-foreground pl-5 leading-relaxed">💡 {issue.fix}</p>
+                    )}
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
 
       {score === 100 && (
-        <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/20 rounded-xl">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/20 rounded-xl"
+        >
           <CheckCircle className="w-4 h-4 text-green-400" />
           <span className="text-xs text-green-300 font-medium">Perfect brief! Ready to attract top creators.</span>
-        </div>
+        </motion.div>
       )}
     </div>
   );

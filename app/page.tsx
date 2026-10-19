@@ -1,11 +1,15 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
+import { useInView } from "react-intersection-observer";
 import {
   ArrowRight, Sparkles, Play, Search, FileText, Handshake,
   Star, CheckCircle2, Zap, TrendingUp, Users, Briefcase, Film, X
 } from "lucide-react";
+
+const ParticleBackground = dynamic(() => import("@/components/ui/ParticleBackground"), { ssr: false });
 
 const STATS = [
   { label: "Verified AI Creators", value: "18", icon: Users },
@@ -60,6 +64,32 @@ const AVAIL_COLOR: Record<string, string> = {
   Booked: "text-red-400",
 };
 
+function HowItWorksCard({ step, index }: { step: typeof HOW_IT_WORKS[0]; index: number }) {
+  const { ref, inView } = useInView({ threshold: 0.2, triggerOnce: true });
+  
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 30 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ delay: 0.1 * index, duration: 0.6 }}
+      className="glass-card rounded-2xl p-6 border border-white/5 hover:border-violet-500/20 transition-all group relative overflow-hidden"
+    >
+      {/* Floating icon */}
+      <motion.div
+        whileHover={{ y: -5 }}
+        transition={{ duration: 0.3 }}
+        className={`w-12 h-12 rounded-xl bg-gradient-to-br ${step.color} flex items-center justify-center mb-4 shadow-lg`}
+      >
+        <step.icon className="w-6 h-6 text-white" />
+      </motion.div>
+      <div className="text-4xl font-display font-bold text-white/10 mb-2">{step.step}</div>
+      <h3 className="font-display font-semibold text-xl mb-3">{step.title}</h3>
+      <p className="text-sm text-muted-foreground leading-relaxed">{step.desc}</p>
+    </motion.div>
+  );
+}
+
 export default function HomePage() {
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
@@ -89,72 +119,95 @@ export default function HomePage() {
 
       {/* Hero */}
       <section className="relative overflow-hidden pt-20 pb-32">
-        {/* Cinematic background */}
+        {/* Particle Background */}
+        <ParticleBackground />
+
+        {/* Animated gradient background */}
         <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-indigo-900/20 to-teal-900/20 animate-gradient-shift"
+            style={{ backgroundSize: "400% 400%" }} />
           <img
             src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=1600&q=80&auto=format&fit=crop"
             alt=""
-            className="w-full h-full object-cover opacity-[0.07]"
+            className="w-full h-full object-cover opacity-[0.05]"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-transparent to-background" />
           <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-background/80" />
-          <div className="absolute top-20 left-1/4 w-96 h-96 bg-violet-600/20 rounded-full blur-3xl" />
-          <div className="absolute top-40 right-1/4 w-64 h-64 bg-cyan-500/15 rounded-full blur-3xl" />
+          <div className="absolute top-20 left-1/4 w-96 h-96 bg-violet-600/20 rounded-full blur-3xl animate-float-slow" />
+          <div className="absolute top-40 right-1/4 w-64 h-64 bg-cyan-500/15 rounded-full blur-3xl animate-float-slow" style={{ animationDelay: "2s" }} />
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-32 bg-gradient-to-t from-background to-transparent" />
         </div>
 
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-sm font-medium mb-8">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-sm font-medium mb-8">
             <Sparkles className="w-3.5 h-3.5" />
             <span>AI-Native Creative Marketplace · Kampus.VC Hackathon</span>
-          </div>
+          </motion.div>
 
-          {/* Headline */}
-          <h1 className="font-display font-bold text-5xl sm:text-6xl lg:text-7xl leading-tight mb-6">
+          {/* Headline with gradient text + fade-in-up animation */}
+          <motion.h1 
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.6 }}
+            className="font-display font-bold text-5xl sm:text-6xl lg:text-7xl leading-tight mb-6">
             Hire the world&apos;s best{" "}
             <span className="gradient-text">AI creators</span>
             <br />
             for your brand
-          </h1>
+          </motion.h1>
 
           {/* Subtitle */}
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+            className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
             CineGen connects brands with verified AI filmmakers, animators, and generative artists. Discover talent, build briefs with AI, get explainable match scores — all in one place.
-          </p>
+          </motion.p>
 
-          {/* CTAs — max 2 */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
+          {/* CTAs with glow + scale on hover */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.6 }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
             <Link
               href="/login"
-              className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-violet-600 to-violet-500 text-white rounded-xl font-semibold text-base hover:from-violet-500 hover:to-violet-400 transition-all shadow-lg shadow-violet-500/30 hover:-translate-y-0.5"
-            >
+              className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-violet-600 to-violet-500 text-white rounded-xl font-semibold text-base hover:from-violet-500 hover:to-violet-400 hover:scale-105 transition-all shadow-lg shadow-violet-500/30 btn-glow">
               <Play className="w-4 h-4" />
               Try Demo — Instant Access
             </Link>
             <Link
               href="/creators"
-              className="flex items-center gap-2 px-8 py-4 glass border border-white/10 text-foreground rounded-xl font-semibold text-base hover:bg-white/5 transition-all hover:-translate-y-0.5"
-            >
+              className="flex items-center gap-2 px-8 py-4 glass border border-white/10 text-foreground rounded-xl font-semibold text-base hover:bg-white/5 hover:scale-105 transition-all">
               <Search className="w-4 h-4" />
               Browse Creators
             </Link>
-          </div>
+          </motion.div>
 
-          {/* Creator avatars — no fake claim */}
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          {/* Creator avatars */}
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <div className="flex -space-x-2">
               {FEATURED_CREATORS.slice(0, 5).map((c) => (
-                <img
+                <motion.img
                   key={c.id}
+                  whileHover={{ scale: 1.2, zIndex: 10 }}
                   src={c.avatar}
                   alt={c.name}
-                  className="w-7 h-7 rounded-full border-2 border-background object-cover"
+                  className="w-7 h-7 rounded-full border-2 border-background object-cover transition-transform"
                 />
               ))}
             </div>
             <span>18 verified AI creators ready to hire</span>
-          </div>
+          </motion.div>
         </div>
       </section>
 
@@ -178,7 +231,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* How It Works */}
+      {/* How It Works with scroll-triggered animations */}
       <section className="py-24 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h2 className="font-display font-bold text-4xl mb-4">How CineGen works</h2>
@@ -188,21 +241,7 @@ export default function HomePage() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {HOW_IT_WORKS.map((step, i) => (
-            <motion.div
-              key={step.step}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 * i }}
-              className="glass rounded-2xl p-6 border border-white/5 hover:border-violet-500/20 transition-all group"
-            >
-              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${step.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                <step.icon className="w-6 h-6 text-white" />
-              </div>
-              <div className="text-4xl font-display font-bold text-white/10 mb-2">{step.step}</div>
-              <h3 className="font-display font-semibold text-xl mb-3">{step.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">{step.desc}</p>
-            </motion.div>
+            <HowItWorksCard key={step.step} step={step} index={i} />
           ))}
         </div>
       </section>

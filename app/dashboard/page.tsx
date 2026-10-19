@@ -1,15 +1,19 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import { Plus, FileText, Users, CheckCircle, Briefcase, Star, TrendingUp, ArrowRight, Clock, Zap, Search } from "lucide-react";
 import { useSession } from "@/hooks/useSession";
 import { useBriefs } from "@/hooks/useBriefs";
 import { useProposals } from "@/hooks/useProposals";
 import { useCreators } from "@/hooks/useCreators";
+import { useCountUp } from "@/hooks/useCountUp";
 import { EngagementStage } from "@/types";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
+
+const ConfettiExplosion = dynamic(() => import("react-confetti-explosion"), { ssr: false });
 
 const STAGES: EngagementStage[] = ["Discovery", "Brief", "Proposals", "Hired", "Delivered"];
 
@@ -38,24 +42,67 @@ function EngagementStepper({ currentStage }: { currentStage: EngagementStage }) 
   );
 }
 
+function StatCard({ stat, index }: { stat: any; index: number }) {
+  const numericValue = typeof stat.value === "number" ? stat.value : 0;
+  const countUpValue = useCountUp(numericValue, 1500);
+  const displayValue = stat.isCurrency ? formatCurrency(countUpValue) : 
+                      typeof stat.value === "string" ? stat.value : countUpValue;
+  
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20, scale: 0.9 }} 
+      animate={{ opacity: 1, y: 0, scale: 1 }} 
+      transition={{ delay: index * 0.1, duration: 0.4 }}
+      whileHover={{ y: -4, scale: 1.02 }}
+      className="glass-card rounded-xl border border-white/5 p-4 relative overflow-hidden group">
+      {/* Gradient background on hover */}
+      <div className="absolute inset-0 bg-gradient-to-br from-violet-600/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      <div className="relative">
+        <stat.icon className={`w-5 h-5 ${stat.color} mb-2`} />
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: index * 0.1 + 0.2 }}
+          className="text-2xl font-display font-bold">
+          {displayValue}
+        </motion.div>
+        <div className="text-xs text-muted-foreground mt-0.5">{stat.label}</div>
+      </div>
+    </motion.div>
+  );
+}
+
 function BrandDashboard() {
   const { session } = useSession();
   const { briefs } = useBriefs();
   const { proposals } = useProposals();
   const { creators } = useCreators();
   const [delivered, setDelivered] = useState<string[]>([]);
+  const [showConfetti, setShowConfetti] = useState<string | null>(null);
 
   const myBriefs = briefs.filter((b) => b.brandId === "brand-001");
   const totalProposals = proposals.filter((p) => myBriefs.some((b) => b.id === p.briefId));
   const acceptedProposals = totalProposals.filter((p) => p.status === "Accepted" || p.status === "Shortlisted");
   const displayEngagements = acceptedProposals.length > 0 ? acceptedProposals : proposals.slice(0, 2);
 
+  const activeBriefsCount = myBriefs.filter((b) => b.status === "Open").length;
+  const proposalsReceivedCount = totalProposals.length;
+  const creatorsHiredCount = acceptedProposals.length;
+  const totalBudget = myBriefs.reduce((s, b) => s + b.budgetMax, 0);
+
   const stats = [
-    { label: "Active Briefs", value: myBriefs.filter((b) => b.status === "Open").length, icon: FileText, color: "text-violet-400" },
-    { label: "Proposals Received", value: totalProposals.length, icon: Users, color: "text-cyan-400" },
-    { label: "Creators Hired", value: acceptedProposals.length, icon: CheckCircle, color: "text-green-400" },
-    { label: "Total Budget", value: formatCurrency(myBriefs.reduce((s, b) => s + b.budgetMax, 0)), icon: TrendingUp, color: "text-amber-400" },
+    { label: "Active Briefs", value: activeBriefsCount, icon: FileText, color: "text-violet-400" },
+    { label: "Proposals Received", value: proposalsReceivedCount, icon: Users, color: "text-cyan-400" },
+    { label: "Creators Hired", value: creatorsHiredCount, icon: CheckCircle, color: "text-green-400" },
+    { label: "Total Budget", value: formatCurrency(totalBudget), icon: TrendingUp, color: "text-amber-400", isCurrency: true },
   ];
+
+  const handleMarkDelivered = (proposalId: string, creatorName: string) => {
+    setDelivered((prev) => [...prev, proposalId]);
+    setShowConfetti(proposalId);
+    setTimeout(() => setShowConfetti(null), 3000);
+    toast.success(`${creatorName} marked delivery complete!`);
+  };
 
   return (
     <div className="space-y-8">
@@ -64,8 +111,8 @@ function BrandDashboard() {
         <p className="text-muted-foreground">Welcome back, {session?.name}</p>
       </div>
 
-      {/* Primary action */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600/30 to-cyan-600/20 border border-violet-500/30 p-6">
+      {/* Primary action with enhanced gradient + glow */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600/30 via-indigo-600/20 to-cyan-600/20 border border-violet-500/30 p-6 btn-glow">
         <div className="absolute inset-0 bg-gradient-to-br from-violet-600/10 to-transparent pointer-events-none" />
         <div className="relative flex items-center justify-between gap-4">
           <div>
@@ -73,28 +120,28 @@ function BrandDashboard() {
             <p className="text-sm text-muted-foreground">Post a brief and get matched with top creators in minutes.</p>
           </div>
           <div className="flex gap-3 flex-shrink-0">
-            <Link href="/briefs/new"
-              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-violet-500 text-white rounded-xl text-sm font-semibold hover:from-violet-500 hover:to-violet-400 transition-all shadow-lg shadow-violet-500/25 whitespace-nowrap">
-              <Plus className="w-4 h-4" /> Post a Brief
-            </Link>
-            <Link href="/estimator"
-              className="flex items-center gap-2 px-5 py-2.5 glass border border-white/10 text-sm font-medium rounded-xl hover:bg-white/5 transition-all whitespace-nowrap">
-              💰 Estimate Budget
-            </Link>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Link href="/briefs/new"
+                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-violet-500 text-white rounded-xl text-sm font-semibold hover:from-violet-500 hover:to-violet-400 transition-all shadow-lg shadow-violet-500/25 whitespace-nowrap btn-glow">
+                <Plus className="w-4 h-4" /> Post a Brief
+              </Link>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Link href="/estimator"
+                className="flex items-center gap-2 px-5 py-2.5 glass border border-white/10 text-sm font-medium rounded-xl hover:bg-white/5 transition-all whitespace-nowrap">
+                💰 Estimate Budget
+              </Link>
+            </motion.div>
           </div>
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Stats with count-up animations and gradient backgrounds */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, i) => (
-          <motion.div key={stat.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-            className="glass rounded-xl border border-white/5 p-4">
-            <stat.icon className={`w-5 h-5 ${stat.color} mb-2`} />
-            <div className="text-2xl font-display font-bold">{stat.value}</div>
-            <div className="text-xs text-muted-foreground mt-0.5">{stat.label}</div>
-          </motion.div>
-        ))}
+        <StatCard stat={stats[0]} index={0} />
+        <StatCard stat={stats[1]} index={1} />
+        <StatCard stat={stats[2]} index={2} />
+        <StatCard stat={stats[3]} index={3} />
       </div>
 
       {/* Engagements */}
@@ -131,15 +178,23 @@ function BrandDashboard() {
                       }`}>{isDelivered ? "✅ Delivered" : proposal.status}</div>
                     </div>
                     {proposal.status === "Accepted" && !isDelivered && (
-                      <button
-                        onClick={() => {
-                          setDelivered((prev) => [...prev, proposal.id]);
-                          toast.success(`${creator.name} marked delivery complete!`);
-                        }}
-                        className="px-3 py-1.5 bg-green-500/20 border border-green-500/30 text-green-300 rounded-lg text-xs font-medium hover:bg-green-500/30 transition-all whitespace-nowrap"
-                      >
-                        ✓ Mark Delivered
-                      </button>
+                      <div className="relative">
+                        <button
+                          onClick={() => handleMarkDelivered(proposal.id, creator.name)}
+                          className="px-3 py-1.5 bg-green-500/20 border border-green-500/30 text-green-300 rounded-lg text-xs font-medium hover:bg-green-500/30 hover:scale-105 transition-all whitespace-nowrap">
+                          ✓ Mark Delivered
+                        </button>
+                        {showConfetti === proposal.id && (
+                          <div className="absolute top-0 left-1/2 -translate-x-1/2 z-50">
+                            <ConfettiExplosion
+                              force={0.6}
+                              duration={2500}
+                              particleCount={50}
+                              width={600}
+                            />
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
