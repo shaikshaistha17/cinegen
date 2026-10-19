@@ -12,6 +12,7 @@ import Hero3DCreatorCard from "@/components/hero/Hero3DCreatorCard";
 import HeroFloatingBadge from "@/components/hero/HeroFloatingBadge";
 import HeroMeshGradient from "@/components/hero/HeroMeshGradient";
 import HeroAnimatedLines from "@/components/hero/HeroAnimatedLines";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 const ParticleBackground = dynamic(() => import("@/components/ui/ParticleBackground"), { ssr: false });
 
@@ -96,6 +97,7 @@ function HowItWorksCard({ step, index }: { step: typeof HOW_IT_WORKS[0]; index: 
 
 export default function HomePage() {
   const [bannerDismissed, setBannerDismissed] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
 
   return (
     <div className="min-h-screen">
@@ -286,11 +288,11 @@ export default function HomePage() {
         </div>
 
         {/* Floating decorative elements - absolute positioned */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden hidden lg:block">
+        <div className="absolute inset-0 pointer-events-none overflow-hidden hidden lg:block" aria-hidden="true">
           {/* Tool logo badges - subtle, small */}
           <motion.div 
             className="absolute top-24 left-[15%] opacity-20"
-            animate={{ y: [0, -15, 0] }}
+            animate={prefersReducedMotion ? {} : { y: [0, -15, 0] }}
             transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}>
             <div className="w-12 h-12 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center">
               <img src="/logos/runway.svg" alt="" className="w-6 h-6 opacity-60" />
@@ -299,7 +301,7 @@ export default function HomePage() {
           
           <motion.div 
             className="absolute bottom-32 right-[20%] opacity-20"
-            animate={{ y: [0, -12, 0] }}
+            animate={prefersReducedMotion ? {} : { y: [0, -12, 0] }}
             transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}>
             <div className="w-12 h-12 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center">
               <img src="/logos/midjourney.svg" alt="" className="w-6 h-6 opacity-60" />
@@ -309,13 +311,13 @@ export default function HomePage() {
           {/* Decorative geometric shapes */}
           <motion.div
             className="absolute top-40 right-[10%] w-24 h-24 border-2 border-violet-500/10 rounded-full"
-            animate={{ rotate: 360 }}
+            animate={prefersReducedMotion ? {} : { rotate: 360 }}
             transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
           />
           
           <motion.div
             className="absolute bottom-40 left-[8%] w-16 h-16 border-2 border-cyan-500/10 rounded-lg"
-            animate={{ rotate: -360 }}
+            animate={prefersReducedMotion ? {} : { rotate: -360 }}
             transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
           />
           

@@ -1,6 +1,7 @@
 "use client";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 interface Creator {
   name: string;
@@ -21,14 +22,23 @@ export default function Hero3DCreatorCard({
   parallaxMultiplier = 0.3,
 }: Hero3DCreatorCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = useReducedMotion();
   const { scrollY } = useScroll();
-  const y = useTransform(scrollY, [0, 1000], [0, -150 * parallaxMultiplier]);
+  const y = useTransform(
+    scrollY,
+    [0, 1000],
+    [0, prefersReducedMotion ? 0 : -150 * parallaxMultiplier]
+  );
 
   return (
     <motion.div
       ref={cardRef}
-      style={{ y }}
-      whileHover={{ scale: 1.02, rotateY: rotation.y + 2 }}
+      style={{ y: prefersReducedMotion ? 0 : y }}
+      whileHover={
+        prefersReducedMotion
+          ? {}
+          : { scale: 1.02, rotateY: rotation.y + 2 }
+      }
       transition={{ duration: 0.3 }}
       className="relative w-60 h-52 group cursor-pointer"
     >

@@ -116,11 +116,19 @@ body {
 }
 
 .gradient-text-enhanced {
-  background: linear-gradient(135deg, #8b5cf6, #22d3ee);
+  background: linear-gradient(135deg, #a78bfa 0%, #22d3ee 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   filter: drop-shadow(0 4px 20px rgba(139, 92, 246, 0.4));
+}
+
+/* Fallback for better contrast on small screens */
+@media (max-width: 640px) {
+  .gradient-text-enhanced {
+    background: linear-gradient(135deg, #c4b5fd 0%, #67e8f9 100%);
+    filter: drop-shadow(0 2px 12px rgba(139, 92, 246, 0.3));
+  }
 }
 
 .gradient-primary {
@@ -212,4 +220,21 @@ body {
 
 .animate-pulse-slow {
   animation: pulse-slow 4s ease-in-out infinite;
+}
+
+/* Disable animations for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .animate-float-slow,
+  .animate-gradient-shift,
+  .animate-pulse-slow {
+    animation: none !important;
+  }
 }

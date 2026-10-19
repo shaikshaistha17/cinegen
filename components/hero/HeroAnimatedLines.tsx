@@ -1,13 +1,17 @@
 "use client";
 import { motion } from "framer-motion";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 export default function HeroAnimatedLines() {
+  const prefersReducedMotion = useReducedMotion();
+
   return (
     <svg
       className="absolute inset-0 w-full h-full pointer-events-none hidden lg:block"
       viewBox="0 0 1200 800"
       preserveAspectRatio="xMidYMid slice"
       xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
     >
       {/* Curved connection lines */}
       <motion.path
@@ -18,7 +22,7 @@ export default function HeroAnimatedLines() {
         opacity="0.15"
         strokeDasharray="5 5"
         initial={{ pathLength: 0 }}
-        animate={{ pathLength: 1 }}
+        animate={prefersReducedMotion ? {} : { pathLength: 1 }}
         transition={{ duration: 2, ease: "easeInOut" }}
       />
       
@@ -30,7 +34,7 @@ export default function HeroAnimatedLines() {
         opacity="0.15"
         strokeDasharray="5 5"
         initial={{ pathLength: 0 }}
-        animate={{ pathLength: 1 }}
+        animate={prefersReducedMotion ? {} : { pathLength: 1 }}
         transition={{ duration: 2.2, ease: "easeInOut", delay: 0.3 }}
       />
       
@@ -42,7 +46,7 @@ export default function HeroAnimatedLines() {
         opacity="0.15"
         strokeDasharray="5 5"
         initial={{ pathLength: 0 }}
-        animate={{ pathLength: 1 }}
+        animate={prefersReducedMotion ? {} : { pathLength: 1 }}
         transition={{ duration: 2.5, ease: "easeInOut", delay: 0.6 }}
       />
 

@@ -1,5 +1,6 @@
 "use client";
 import { motion } from "framer-motion";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 interface HeroFloatingBadgeProps {
   icon: string;
@@ -20,11 +21,17 @@ export default function HeroFloatingBadge({
   color,
   delay = 0,
 }: HeroFloatingBadgeProps) {
+  const prefersReducedMotion = useReducedMotion();
+
   return (
     <motion.div
-      animate={{
-        y: [0, -12, 0],
-      }}
+      animate={
+        prefersReducedMotion
+          ? {}
+          : {
+              y: [0, -12, 0],
+            }
+      }
       transition={{
         duration: 4,
         repeat: Infinity,

@@ -1,15 +1,22 @@
 "use client";
 import { motion } from "framer-motion";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 
 export default function HeroMeshGradient() {
+  const prefersReducedMotion = useReducedMotion();
+
   return (
     <div className="absolute inset-0 overflow-hidden">
       {/* Animated gradient orbs */}
       <motion.div
-        animate={{
-          x: [0, 100, 0],
-          y: [0, -50, 0],
-        }}
+        animate={
+          prefersReducedMotion
+            ? {}
+            : {
+                x: [0, 100, 0],
+                y: [0, -50, 0],
+              }
+        }
         transition={{
           duration: 20,
           repeat: Infinity,
@@ -19,10 +26,14 @@ export default function HeroMeshGradient() {
       />
       
       <motion.div
-        animate={{
-          x: [0, -80, 0],
-          y: [0, 60, 0],
-        }}
+        animate={
+          prefersReducedMotion
+            ? {}
+            : {
+                x: [0, -80, 0],
+                y: [0, 60, 0],
+              }
+        }
         transition={{
           duration: 18,
           repeat: Infinity,
@@ -33,10 +44,14 @@ export default function HeroMeshGradient() {
       />
       
       <motion.div
-        animate={{
-          x: [0, 60, 0],
-          y: [0, -40, 0],
-        }}
+        animate={
+          prefersReducedMotion
+            ? {}
+            : {
+                x: [0, 60, 0],
+                y: [0, -40, 0],
+              }
+        }
         transition={{
           duration: 22,
           repeat: Infinity,
@@ -50,6 +65,7 @@ export default function HeroMeshGradient() {
       <svg
         className="absolute inset-0 w-full h-full opacity-10"
         xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
       >
         <motion.circle
           cx="20%"
@@ -59,7 +75,11 @@ export default function HeroMeshGradient() {
           strokeWidth="2"
           fill="none"
           initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 0.3 }}
+          animate={
+            prefersReducedMotion
+              ? { opacity: 0.3 }
+              : { pathLength: 1, opacity: 0.3 }
+          }
           transition={{ duration: 2, ease: "easeInOut" }}
         />
         <motion.circle
@@ -70,7 +90,11 @@ export default function HeroMeshGradient() {
           strokeWidth="2"
           fill="none"
           initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 0.3 }}
+          animate={
+            prefersReducedMotion
+              ? { opacity: 0.3 }
+              : { pathLength: 1, opacity: 0.3 }
+          }
           transition={{ duration: 2.5, ease: "easeInOut", delay: 0.5 }}
         />
         <defs>
