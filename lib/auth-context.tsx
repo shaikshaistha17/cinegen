@@ -32,7 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: string) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         const profile = await getCurrentProfile();
         setUser(profile);

@@ -59,7 +59,7 @@ export async function getCurrentProfile(): Promise<AuthUser | null> {
 
 // Listen to auth changes
 export function onAuthChange(callback: (user: AuthUser | null) => void) {
-  return supabase.auth.onAuthStateChange(async (event, session) => {
+  return supabase.auth.onAuthStateChange(async (event: string, session: any) => {
     if (session) {
       const profile = await getCurrentProfile();
       callback(profile);

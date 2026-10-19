@@ -1,0 +1,42 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Supabase Authentication System - Replace cookie+localStorage auth with Supabase Auth (JWT tokens, email OTP, Google OAuth), maintain demo mode for hackathon judges",
+  "status": "pending",
+  "steps": [
+    "1. Create lib/auth-helpers.ts with functions: hashPassword(password), verifyPassword(password, hash), generateOTP() returns 6-digit code, storeOTP(email, code, expiresAt) in users table or separate otp_codes table, verifyOTP(email, code) checks validity and 15-min expiry",
+    "2. Update types/index.ts: change Session interface to include access_token, refresh_token, expires_at from Supabase; add OTPVerification type { email, code, expiresAt }",
+    "3. Create app/api/auth/register/route.ts POST endpoint: validates email/password/role/name, hashes password with bcryptjs, creates Supabase auth user with supabase.auth.signUp(), creates corresponding row in users table and creator_profiles or brand_profiles table, sends email OTP if email confirmation enabled (use Supabase built-in email), returns { user, session } or { message: 'Check email for verification' }",
+    "4. Create app/api/auth/login/route.ts POST endpoint: (1) Check for demo credentials first (same DEMO_CREDENTIALS array from current useSession.ts - brand@cinegen.demo, creator@cinegen.demo, all 18 creator emails with Demo@123), if match: create short-lived Supabase session for that user via admin client, return session token. (2) For non-demo: call supabase.auth.signInWithPassword(), return session",
+    "5. Create app/api/auth/verify-otp/route.ts POST endpoint: accepts { email, otp }, verifies OTP code and expiry, calls supabase.auth.verifyOtp() if using Supabase's OTP or custom verification logic, returns session tokens on success",
+    "6. Create app/api/auth/google/route.ts GET endpoint: redirects to supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${BASE_URL}/auth/callback` } }), handles OAuth flow",
+    "7. Create app/auth/callback/route.ts GET handler: Supabase OAuth callback handler using cookies, exchanges code for session, redirects to /dashboard",
+    "8. Completely rewrite hooks/useSession.ts: Replace localStorage with Supabase session management. useEffect listens to supabase.auth.onAuthStateChange(), stores session in state. login(email, password) calls /api/auth/login then supabase.auth.setSession(). loginAsRole(role) for demo mode calls login with demo credentials. logout() calls supabase.auth.signOut(). Remove switchRole (no longer needed - users have fixed roles). Add refreshSession() that calls supabase.auth.refreshSession(). Add loading state during initial auth check.",
+    "9. Update middleware.ts: Replace cookie role check with JWT verification using createServerClient from @supabase/ssr, extract role from users table join or from JWT custom claims, protect same routes (/dashboard, /briefs/new for brands only)",
+    "10. Update app/login/page.tsx: Keep existing demo login UI (Continue as Brand, Continue as Creator buttons call loginAsRole), add Google OAuth button that redirects to /api/auth/google, add email/password form that calls login() from useSession",
+    "11. Update app/register/page.tsx: Replace localStorage registration with API call to /api/auth/register, handle email verification flow (show 'Check your email' message), add OTP input field if email verification enabled, call /api/auth/verify-otp",
+    "12. Test demo mode thoroughly: brand@cinegen.demo, creator@cinegen.demo, and all 18 creator emails (aryan@cinegen.demo, priya@cinegen.demo, etc.) must still work with Demo@123 password for instant judge access"
+  ],
+  "acceptance_criteria": [
+    "Demo login still works: brand@cinegen.demo and creator@cinegen.demo with Demo@123 password logs in instantly via /api/auth/login",
+    "All 18 creator demo accounts (aryan@cinegen.demo through ishaan@cinegen.demo) work with Demo@123",
+    "New user registration creates Supabase auth user + database user row + profile row, sends verification email",
+    "Email OTP verification flow works (6-digit code, 15-minute expiry)",
+    "Google OAuth login redirects correctly and creates user session",
+    "JWT tokens are stored and refreshed properly, middleware correctly protects routes using Supabase session",
+    "Logout clears Supabase session and redirects to login",
+    "useSession hook provides session state across all components without localStorage"
+  ],
+  "verification": [
+    "Run: npm run build - must succeed with no TypeScript errors",
+    "Start dev server: npm run dev",
+    "Test demo login: go to /login, click 'Continue as Brand', verify redirect to /dashboard with brand stats visible",
+    "Test creator demo: click 'Continue as Creator', verify creator dashboard shows proposal stats",
+    "Test manual login: try aryan@cinegen.demo / Demo@123, verify login works",
+    "Test logout: click logout in navbar, verify redirect to login page and session cleared",
+    "Test new registration: register new brand user, verify email OTP flow (check Supabase email logs), verify login after verification",
+    "Test middleware protection: try accessing /dashboard without login, verify redirect to /login"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

@@ -1,0 +1,49 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Database-Backed Core Features - Replace all localStorage hooks with Supabase queries: creators, briefs, proposals, real-time messaging, reviews, and verification system",
+  "status": "pending",
+  "steps": [
+    "1. Rewrite hooks/useCreators.ts: Fetch from creator_profiles table with user join, include real-time subscription for profile updates, add createCreatorProfile(), updateCreatorProfile(id, data), uploadAvatar(file) and uploadCover(file) using Storage API, maintain same CreatorProfile type interface",
+    "2. Rewrite hooks/useBriefs.ts: Fetch from briefs table filtered by RLS (Open briefs for all, own briefs for brands), subscribe to real-time changes, add saveBrief(brief) that inserts/updates via Supabase, deleteBrief(id), updateBriefStatus(id, status)",
+    "3. Rewrite hooks/useProposals.ts: Fetch from proposals table (creator sees their own, brand sees proposals for their briefs), real-time subscription, add submitProposal(briefId, data), updateProposalStatus(id, status), getProposalsForBrief(briefId), getProposalsForCreator(creatorId)",
+    "4. Create hooks/useMessages.ts for real-time messaging: getConversations(userId) returns list of conversations with last message + unread count, getMessages(conversationId) with real-time subscription using supabase.channel().on('postgres_changes', ...), sendMessage(recipientId, content) inserts into messages table, markAsRead(messageId), getUnreadCount(userId). Use 10-second polling fallback if Realtime quota exceeded on free tier.",
+    "5. Create hooks/useReviews.ts: getReviewsForCreator(creatorId) to display on profile, submitReview(briefId, creatorId, rating, comment) - can only be called once per engagement by the brand, calculateAverageRating(creatorId) helper",
+    "6. Create hooks/useVerifications.ts: getVerificationStatus(creatorId), requestVerification(creatorId, type, evidenceUrl) creates verification request, admin functions: getPendingVerifications(), approveVerification(id, adminNotes), rejectVerification(id, reason)",
+    "7. Create app/api/creators/route.ts: GET endpoint with search/filter query params (mirrors current localStorage filtering logic: tools, specializations, rate range, availability, verified only), POST for creating profile. Use Supabase query builder with proper filtering.",
+    "8. Create app/api/messages/route.ts: GET /api/messages?conversationId=X returns messages, POST /api/messages sends new message and triggers Supabase Realtime broadcast",
+    "9. Create app/api/reviews/route.ts: GET /api/reviews?creatorId=X, POST /api/reviews with validation (brand must have hired creator, can only review once per engagement)",
+    "10. Create app/api/verifications/route.ts: GET for listing verification requests (admin only), POST for creator to submit request, PATCH for admin approval/rejection",
+    "11. Update app/creators/page.tsx: Replace useCreators() hook usage with new Supabase-backed version, ensure search and filters still work, maintain same UI",
+    "12. Update app/dashboard/page.tsx: Use new hooks for briefs and proposals data, display real-time updates (new proposal notifications), add unread message count badge in navbar using useMessages",
+    "13. Update app/briefs/page.tsx and app/briefs/new/page.tsx: Use new useBriefs hook, maintain AI Brief Builder functionality, save to Supabase instead of localStorage",
+    "14. Create app/messages/page.tsx: New messaging interface with conversation list sidebar (shows avatars, names, last message, unread count), message thread view with real-time updates, message input with send button, typing indicators if time permits",
+    "15. Create app/creators/[id]/components/ReviewSection.tsx: Display reviews with star ratings, show average rating prominently, allow brand users to submit review if they have hired this creator",
+    "16. Create app/creators/[id]/components/VerificationBadge.tsx: Enhanced verification badge with tooltip showing verification evidence (tools verified, workflow verified, past work verified), 'Request Verification' button for creators on their own profile",
+    "17. Create app/admin/verifications/page.tsx: Admin dashboard to review pending verification requests, view evidence URLs, approve/reject with notes (only accessible to admin role users)"
+  ],
+  "acceptance_criteria": [
+    "All hooks (useCreators, useBriefs, useProposals, useMessages, useReviews, useVerifications) fetch from Supabase and provide real-time updates where applicable",
+    "Creator discovery page works identically to current version but with database data - search, filters, sorting all functional",
+    "Brief creation saves to database and appears in brand dashboard and creator discovery immediately",
+    "Proposal submission works and brand receives real-time notification",
+    "Real-time messaging works between brand and creator with unread counts and instant message delivery (or 10s polling on free tier)",
+    "Review system allows brands to rate creators post-project, reviews display on creator profiles with average rating calculation",
+    "Verification request workflow: creator requests → admin reviews → badge updates on approval",
+    "All existing pages (dashboard, creators, briefs) function without localStorage, all data persists across page reloads"
+  ],
+  "verification": [
+    "Run: npm run build - must succeed",
+    "Start dev server: npm run dev",
+    "Test creator discovery: go to /creators, search for 'Runway', verify results show creators with Runway tool",
+    "Test filters: filter by 'Available' only, verify Booked creators don't show",
+    "Test brief creation: login as brand, create brief via AI builder, verify it saves to database by checking Supabase Table Editor",
+    "Test proposals: login as creator (aryan@cinegen.demo), browse briefs, submit proposal, login as brand and verify proposal appears in dashboard",
+    "Test real-time brief updates: open two browser windows (brand and creator), brand posts new brief, creator window should show it in briefs list without refresh",
+    "Test messaging: brand sends message to creator, creator sees unread count in navbar, opens message thread, sees message instantly",
+    "Test reviews: brand marks engagement as delivered, submits 5-star review, verify review appears on creator profile",
+    "Test verification: login as creator, go to own profile, click 'Request Verification', check admin dashboard (/admin/verifications) shows pending request"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

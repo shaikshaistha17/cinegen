@@ -1,0 +1,53 @@
+{
+  "id": "FEAT-005",
+  "type": "chore",
+  "description": "Production Deployment & Documentation - Deploy to Render with Supabase integration, comprehensive README updates, demo video, and final polish",
+  "status": "pending",
+  "steps": [
+    "1. Create render.yaml for Render deployment configuration: web service with Node 20, build command 'npm install && npm run build', start command 'npm start', environment variables (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, GEMINI_API_KEY as optional), auto-deploy from main branch",
+    "2. Update .env.example with all required environment variables: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY (warning: never expose this), GEMINI_API_KEY (optional), NODE_ENV",
+    "3. Create DEPLOYMENT.md documentation: Step-by-step Render deployment guide: (1) Push code to GitHub, (2) Create new Web Service on Render, (3) Connect GitHub repo, (4) Set environment variables from Supabase project, (5) Set build & start commands, (6) Deploy. Include custom domain setup instructions, SSL certificate notes, and troubleshooting common deployment errors (build failures, environment variable issues, database connection problems)",
+    "4. Update README.md: (a) Replace Vercel deployment badge with Render badge and new live URL, (b) Update 'What is CineGen' section to mention real-time messaging, verification system, database persistence, (c) Add 'New in v2.0' section highlighting: Supabase backend, real-time features, verification system, enhanced UI with animations, Google OAuth, (d) Update Tech Stack section to include Supabase, PostgreSQL, Supabase Realtime, bcryptjs, (e) Update Architecture diagram to show Supabase layer (PostgreSQL + Auth + Storage + Realtime), (f) Keep judge access instructions prominent with demo credentials, (g) Add screenshots section with 6-8 key screenshots (homepage hero, creator discovery, AI brief builder, dashboard, messaging, creator profile with reviews), (h) Update Run Locally section to include database setup steps (reference SETUP.md), (i) Add Environment Variables section listing all required vars",
+    "5. Create CHANGELOG.md: Document v2.0 changes in detail - breaking changes (localStorage → Supabase migration, auth system replacement), new features (real-time messaging, verification system, reviews, Google OAuth), UI improvements (new color palette, animations, glassmorphism, mobile responsive), technical improvements (PostgreSQL with RLS, JWT auth, storage buckets)",
+    "6. Create docs/ARCHITECTURE.md: Comprehensive technical documentation covering: (a) System architecture diagram (Client → Next.js API Routes → Supabase), (b) Database schema with table relationships, (c) Authentication flow diagram (registration → email OTP → JWT tokens), (d) RLS policies explanation per table, (e) Real-time messaging architecture (Supabase Realtime vs polling fallback), (f) File upload flow (Storage buckets, signed URLs), (g) Security considerations (password hashing, JWT verification, RLS enforcement, input validation)",
+    "7. Create docs/API.md: API endpoint documentation for all routes: /api/auth/register, /api/auth/login, /api/auth/verify-otp, /api/auth/google, /api/creators (GET with query params), /api/messages (GET/POST), /api/reviews (GET/POST), /api/verifications (GET/POST/PATCH), /api/brief (existing Gemini route). Include request/response examples, authentication requirements, error codes",
+    "8. Final polish pass on all pages: (a) Check for console errors and warnings, fix any React key warnings, (b) Add loading states to all data fetching operations, (c) Add error boundaries for graceful error handling (create components/ErrorBoundary.tsx), (d) Add empty states for lists (no creators found, no briefs, no messages, no proposals), (e) Verify all links work (no broken hrefs), (f) Spell check all user-facing text, (g) Ensure all forms have proper validation and error messages, (h) Add success/error toasts for all user actions (brief created, proposal submitted, message sent, etc.)",
+    "9. Create demo video script (for user to record): (1) Homepage - show hero with animations, scroll through features, (2) Demo login - click 'Continue as Brand', (3) Dashboard - highlight stats with count-up, engagement stepper, (4) Discover creators - search 'Runway', filter by tools, show creator cards with animations, (5) Creator profile - show Style DNA, portfolio with workflow, verified badges, reviews, (6) AI Brief Builder - show typing animation, Brief Intelligence score, match results, (7) Messages - show real-time messaging between brand and creator, (8) Proposal flow - creator submits proposal, brand accepts, mark delivered with confetti, (9) Review - brand submits 5-star review, shows on creator profile. Target 3-4 minutes.",
+    "10. Performance optimization final check: (a) Run Lighthouse audit on all major pages (homepage, /creators, /dashboard, /briefs/new), target 90+ performance, 100 accessibility, 100 best practices, (b) Optimize images: compress portfolio images, use WebP format where possible, (c) Check bundle size: npm run build should show total bundle size < 1MB for main bundle, (d) Enable Next.js production optimizations: check next.config.js for swcMinify: true, images optimization, (e) Add meta tags for SEO: title, description, og:image for social sharing, (f) Add favicon and app icons",
+    "11. Security audit: (a) Verify all API routes validate authentication (check for supabase auth token), (b) Verify RLS policies are enabled on all tables (test with unauthenticated client), (c) Check for exposed secrets (grep for SUPABASE_SERVICE_ROLE_KEY in client code, must not exist), (d) Verify password hashing uses bcryptjs with proper salt rounds (10+), (e) Check for SQL injection vulnerabilities (use Supabase parameterized queries, never string concatenation), (f) Add rate limiting to auth endpoints if time permits (optional: use Upstash Redis + @upstash/ratelimit), (g) Add CORS headers to API routes (only allow same origin)",
+    "12. Final testing checklist: Create TESTING.md with comprehensive test scenarios: (a) Demo login flow (all accounts), (b) New user registration and email verification, (c) Google OAuth login, (d) Creator discovery with all filter combinations, (e) Brief creation (manual and AI), (f) Proposal submission and acceptance, (g) Real-time messaging (open two browsers), (h) Review submission and display, (i) Verification request flow, (j) All animations on desktop/mobile, (k) Responsive design on 5 viewport sizes, (l) Cross-browser testing (Chrome, Firefox, Safari)"
+  ],
+  "acceptance_criteria": [
+    "Application successfully deploys to Render with no build errors",
+    "Live production URL is accessible and all features work with Supabase production database",
+    "All environment variables properly configured in Render dashboard",
+    "README.md is comprehensive with updated tech stack, architecture, screenshots, and judge access instructions",
+    "SETUP.md, DEPLOYMENT.md, docs/ARCHITECTURE.md, docs/API.md all complete and accurate",
+    "CHANGELOG.md documents all v2.0 changes",
+    "TESTING.md provides thorough test coverage checklist",
+    "Demo video script ready for user to record walkthrough",
+    "All pages have proper loading states, error handling, empty states, success/error toasts",
+    "Lighthouse scores: Performance >85, Accessibility 100, Best Practices 100, SEO >90 on all major pages",
+    "No console errors or warnings in production build",
+    "Security audit passes: no exposed secrets, RLS enforced, passwords hashed, auth validated on all protected routes",
+    "Cross-browser testing passes on Chrome, Firefox, Safari",
+    "Mobile responsive testing passes on all viewport sizes 320px - 2560px"
+  ],
+  "verification": [
+    "Run: npm run build - must succeed with zero errors and warnings",
+    "Check build output: verify bundle sizes are reasonable (<1MB main bundle)",
+    "Deploy to Render: follow DEPLOYMENT.md steps, verify deployment succeeds",
+    "Access production URL: verify app loads without errors",
+    "Test demo login on production: brand@cinegen.demo / Demo@123 must work",
+    "Test all core features on production: creator discovery, brief creation, proposals, messaging, reviews",
+    "Run Lighthouse audit on production URL for /, /creators, /dashboard, /briefs/new: verify all scores >85",
+    "Check browser console on production: zero errors or warnings",
+    "Test responsive design: use Chrome DevTools device emulation, test 320px, 375px, 768px, 1024px, 1920px viewports",
+    "Cross-browser test: open production URL in Chrome, Firefox, Safari - verify no visual or functional issues",
+    "Security check: inspect Network tab, verify no SUPABASE_SERVICE_ROLE_KEY exposed in client requests",
+    "RLS check: use browser console to attempt direct Supabase query to briefs table without auth - should fail or only return Open briefs",
+    "Load test (optional): send 10 concurrent requests to /api/auth/login, verify no rate limit errors or crashes"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
