@@ -195,13 +195,13 @@ export default function HomePage() {
                 className="flex flex-col sm:flex-row items-center sm:items-start justify-center sm:justify-start gap-4 mb-8 sm:mb-12">
                 <Link
                   href="/login"
-                  className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-violet-600 to-violet-500 text-white rounded-xl font-semibold text-base hover:from-violet-500 hover:to-violet-400 hover:scale-105 transition-all shadow-lg shadow-violet-500/30 btn-glow">
+                  className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-violet-600 to-violet-500 text-white rounded-xl font-semibold text-base hover:from-violet-500 hover:to-violet-400 hover:scale-105 transition-all shadow-lg shadow-violet-500/30 btn-glow focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none">
                   <Play className="w-4 h-4" />
                   Try Demo — Instant Access
                 </Link>
                 <Link
                   href="/creators"
-                  className="flex items-center gap-2 px-8 py-4 glass border border-white/10 text-foreground rounded-xl font-semibold text-base hover:bg-white/5 hover:scale-105 transition-all">
+                  className="flex items-center gap-2 px-8 py-4 glass border border-white/10 text-foreground rounded-xl font-semibold text-base hover:bg-white/5 hover:scale-105 transition-all focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none">
                   <Search className="w-4 h-4" />
                   Browse Creators
                 </Link>

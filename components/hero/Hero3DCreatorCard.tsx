@@ -40,7 +40,7 @@ export default function Hero3DCreatorCard({
           : { scale: 1.02, rotateY: rotation.y + 2 }
       }
       transition={{ duration: 0.3 }}
-      className="relative w-60 h-52 group cursor-pointer"
+      className="relative w-60 h-52 group"
     >
       <div
         className="w-full h-full rounded-2xl glass-strong border border-white/12 p-5 transition-all duration-300"
