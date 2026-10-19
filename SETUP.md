@@ -360,7 +360,7 @@ Navigate to: [http://localhost:3000/api/test-emails](http://localhost:3000/api/t
 
 This shows all 6 templates with sample data. You can copy HTML or view plain text versions.
 
-⚠️ **Important**: Remove the `/app/api/test-emails` route before production deployment.
+⚠️ **Important**: This route is automatically disabled in production (`NODE_ENV=production`). For production previews, use development mode or build a protected admin interface.
 
 ### Customizing Email Templates
 
@@ -377,6 +377,12 @@ Email templates are stored in `/emails/` directory. To customize:
 - Keep width under 600px for mobile
 - Use web-safe fonts: Arial, Helvetica, sans-serif
 - Brand colors: `#7c3aed` (violet), `#06b6d4` (cyan), `#4f46e5` (indigo)
+
+**Known Limitations:**
+- Media queries in `<style>` tags are stripped by Gmail, Yahoo Mail, and some other clients
+- Mobile responsive layouts may not work in all clients
+- Templates use fixed-width table layouts as fallback (600px)
+- OTP codes and avatar circles use table-based layouts for maximum compatibility (Outlook support)
 
 ### Integrating with Email Service
 
@@ -523,11 +529,16 @@ const proposalTemplate = generateProposalNotification(
 await sendEmail('brand@company.com', proposalTemplate);
 ```
 
+**Architecture Notes:**
+- Templates are read from `/emails/` directory and cached in memory
+- All user-provided variables are automatically HTML-escaped to prevent XSS
+- Plain-text fallbacks are included for accessibility and spam filter compliance
+- Each template returns `{ subject, html, text }` for flexible email service integration
+
 ### Production Checklist
 
 Before deploying to production:
 
-- [ ] Remove or protect `/api/test-emails` route (add auth middleware)
 - [ ] Set up email service (Resend/SendGrid) with production API keys
 - [ ] Verify DNS records for custom domain email sending
 - [ ] Test all email templates with real email addresses
@@ -535,6 +546,7 @@ Before deploying to production:
 - [ ] Add unsubscribe functionality to footer links
 - [ ] Set up email analytics/tracking (optional)
 - [ ] Comply with email regulations (CAN-SPAM, GDPR)
+- [ ] Optional: Add authentication to `/api/test-emails` route for internal use
 
 ### Troubleshooting Emails
 

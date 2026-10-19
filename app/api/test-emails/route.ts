@@ -8,6 +8,11 @@ import {
 } from '@/lib/email-templates';
 
 export async function GET() {
+  // Only allow in development mode
+  if (process.env.NODE_ENV === 'production') {
+    return new NextResponse('Not Found', { status: 404 });
+  }
+
   // Generate all email templates with sample data
   const passwordReset = generatePasswordResetEmail(
     'https://cinegen.ai/reset?token=DEMO123',
