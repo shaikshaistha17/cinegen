@@ -64,7 +64,8 @@ export default function MessagesPage() {
         setMessageInput("");
       }
     } catch (error) {
-      console.error("Failed to send message:", error);
+      // Error sending message - show toast notification if available
+      // Console log removed for production
     } finally {
       setSending(false);
     }

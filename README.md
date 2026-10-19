@@ -5,11 +5,12 @@
 
 **Discover talent. Define campaigns. Create with confidence.**
 
-[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-cinegen--bytexl.vercel.app-6d28d9?style=for-the-badge)](https://cinegen-bytexl.vercel.app)
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-cinegen.onrender.com-6d28d9?style=for-the-badge)](https://cinegen.onrender.com)
 [![Next.js](https://img.shields.io/badge/Next.js_14-black?style=for-the-badge&logo=next.js)](https://nextjs.org)
+[![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com)
 [![Gemini AI](https://img.shields.io/badge/Gemini_2.0_Flash-4285F4?style=for-the-badge&logo=google)](https://aistudio.google.com)
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://typescriptlang.org)
-[![Vercel](https://img.shields.io/badge/Deployed_on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com)
+[![Render](https://img.shields.io/badge/Deployed_on-Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://render.com)
 
 > Built for the **Kampus.VC AI Content Creator Marketplace Hackathon**
 
@@ -44,10 +45,12 @@ Brands struggle to find, evaluate, and brief AI creators because:
 
 ### 🔗 Live URL
 ```
-https://cinegen-bytexl.vercel.app
+https://cinegen.onrender.com
 ```
 
 A **judge welcome banner** appears at the top with instant access. Click it or go to `/login`.
+
+> **Note:** First visit may take ~30 seconds to wake up (free tier Render service). Subsequent visits are instant.
 
 ### 1-Click Login
 
@@ -91,7 +94,59 @@ A **judge welcome banner** appears at the top with instant access. Click it or g
 
 ---
 
-## 3. Full Demo Guide
+## 3. New in v2.0 🎉
+
+### Major Enhancements
+
+**🗄️ Supabase Backend**
+- PostgreSQL database with Row Level Security (RLS)
+- 9 database tables for users, profiles, briefs, proposals, messages, reviews, verifications
+- Real-time subscriptions for live updates
+- Supabase Storage for avatars and portfolios
+
+**🔐 Production-Ready Authentication**
+- Email/password with bcrypt hashing (10 salt rounds)
+- Email OTP verification (6-digit code, 15-min expiry)
+- Google OAuth integration
+- JWT access/refresh tokens with automatic rotation
+- Demo accounts for instant testing
+
+**💬 Real-time Messaging**
+- Live 1-on-1 conversations between brands and creators
+- Supabase Realtime for instant message delivery (~200ms latency)
+- Unread message tracking with notification badges
+- Conversation sidebar with last message preview
+
+**✅ Verification System**
+- Creators request verification with evidence URLs
+- Admin review dashboard for approvals/rejections
+- Verified badges with animated pulse glow
+- Evidence panel showing audited proof
+
+**⭐ Review & Rating System**
+- 1-5 star ratings for completed projects
+- Post-engagement review submission (brands only)
+- Average rating calculation and display
+- Review feed on creator profiles
+
+**🎨 Legendary UI Transformation**
+- New color palette: Purple-indigo-teal-pink gradients
+- Advanced animations: Confetti, particles, 3D card tilt, score rings
+- Enhanced glassmorphism with backdrop-blur
+- Typing animations during AI brief generation
+- Scroll-triggered fade-in effects
+- Mobile-responsive hamburger menu
+
+**📊 Enhanced Features**
+- Brief Intelligence with real-time audit and score ring
+- Style DNA radar chart with animated path drawing
+- Budget Estimator and Risk Scanner tools
+- Creator comparison with AI recommendations
+- Leaderboard with podium display
+
+---
+
+## 4. Full Demo Guide
 
 ### 🏢 Brand Workflow
 
@@ -216,38 +271,49 @@ A **judge welcome banner** appears at the top with instant access. Click it or g
 | React | 18.x | UI components, hooks |
 | TypeScript | 5.x | Full type safety |
 
+### Backend & Database
+| Tech | Version | Purpose |
+|------|---------|---------|
+| Supabase | 2.118.0 | Backend-as-a-Service (PostgreSQL, Auth, Storage, Realtime) |
+| PostgreSQL | 15.x | Primary database with Row Level Security |
+| @supabase/ssr | 0.12.7 | Server-side Supabase client with cookie management |
+| bcryptjs | 3.0.3 | Password hashing (10 salt rounds) |
+
 ### Styling & Animation
 | Tech | Purpose |
 |------|---------|
-| Tailwind CSS | Utility-first dark cinematic design system |
-| Framer Motion | Animations, transitions, score rings, steppers |
-| Lucide React | Icon library |
-| Custom CSS | Glass morphism, grain overlay, gradient utilities |
+| Tailwind CSS | Utility-first styling with custom purple-indigo-teal palette |
+| Framer Motion | 3D effects, score rings, transitions, confetti |
+| Lucide React | Icon library (350+ icons) |
+| react-confetti-explosion | Confetti animations on milestones |
+| react-type-animation | Typing effect during AI generation |
+| react-intersection-observer | Scroll-triggered animations |
 
 ### AI & Intelligence
 | Tech | Purpose |
 |------|---------|
-| Google Gemini 2.0 Flash | Brief generation — server-side API route only |
-| `lib/briefFallback.ts` | Rule-based brief generator (works without API key) |
-| `lib/matchScore.ts` | Creator-to-brief compatibility scoring algorithm |
-| `BriefIntelligence.tsx` | Real-time brief audit engine |
-| `StyleDNA.tsx` | Style scoring + SVG radar chart renderer |
+| Google Gemini 2.0 Flash | Brief generation (server-side only, optional) |
+| `lib/briefFallback.ts` | Rule-based brief generator (fallback) |
+| `lib/matchScore.ts` | Creator-to-brief compatibility scoring |
+| `BriefIntelligence.tsx` | Real-time brief audit with score/100 |
+| `StyleDNA.tsx` | SVG radar chart with 6 style axes |
 
 ### Data & State
 | Tech | Purpose |
 |------|---------|
-| localStorage | Session, briefs, proposals, registered users |
-| Seed data | 18 creator profiles in `lib/seed/creators.ts` |
-| Custom hooks | useSession, useCreators, useBriefs, useProposals |
-| Sonner | Toast notifications |
+| Supabase Realtime | WebSocket subscriptions for live messaging |
+| Custom hooks | useSession, useCreators, useBriefs, useProposals, useMessages, useReviews, useVerifications |
+| Sonner | Toast notifications with auto-dismiss |
+| Zod | Schema validation for API inputs |
 
 ### Auth & Deployment
 | Tech | Purpose |
 |------|---------|
-| Cookie + localStorage | Role in cookie for middleware, session in localStorage |
-| Next.js middleware | Protects brand-only routes, redirects unauthenticated users |
-| Vercel | Auto-deploy on every GitHub push |
-| GitHub | Source control |
+| Supabase Auth | JWT tokens, email/password, Google OAuth, OTP verification |
+| Next.js middleware | Route protection with JWT validation |
+| Render | Web service hosting (Node 20, auto-deploy) |
+| Supabase Cloud | Managed PostgreSQL, Auth, Storage, Realtime |
+| GitHub | Source control with CI/CD to Render |
 
 ---
 
@@ -255,31 +321,54 @@ A **judge welcome banner** appears at the top with instant access. Click it or g
 
 ```
 ┌─────────────────────────────────────────────────┐
-│                   Browser (Client)               │
-│                                                  │
+│                Browser (Client)                  │
 │  ┌──────────┐  ┌──────────┐  ┌──────────────┐  │
 │  │  Pages   │  │  Hooks   │  │  Components  │  │
 │  │/creators │  │useSession│  │BriefIntel    │  │
 │  │/briefs   │  │useCreators│ │StyleDNA      │  │
 │  │/dashboard│  │useBriefs │  │Navbar        │  │
-│  │/estimator│  │useProposals│ │CreatorCard  │  │
+│  │/messages │  │useMessages│  │CreatorCard  │  │
+│  │/reviews  │  │useReviews│  │ErrorBoundary │  │
 │  └──────────┘  └──────────┘  └──────────────┘  │
-│                      ↓                           │
-│              localStorage / cookies              │
+│         ↓ Supabase JS Client (RLS applied)      │
 └─────────────────────────────────────────────────┘
                         ↓
 ┌─────────────────────────────────────────────────┐
-│              Next.js Server (Vercel Edge)        │
-│                                                  │
-│  /api/brief/route.ts → Gemini 2.0 Flash API     │
-│  middleware.ts → Route protection                │
+│         Next.js Server (Render/Node 20)          │
+│  /api/auth/* → Registration, login, OAuth        │
+│  /api/creators → Search/filter with RLS          │
+│  /api/messages → Real-time messaging             │
+│  /api/reviews → Submit/fetch reviews             │
+│  /api/verifications → Admin approval             │
+│  /api/brief → Gemini AI integration              │
+│  middleware.ts → JWT validation                  │
+└─────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────┐
+│               Supabase Backend                   │
+│  ┌──────────────────────────────────────────┐  │
+│  │ PostgreSQL (15.x) with RLS               │  │
+│  │ Tables: users, creator_profiles, briefs, │  │
+│  │ proposals, messages, reviews, ...        │  │
+│  └──────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────┐  │
+│  │ Auth (GoTrue): JWT, email/pw, OAuth      │  │
+│  └──────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────┐  │
+│  │ Storage: avatars/, portfolios/ buckets   │  │
+│  └──────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────┐  │
+│  │ Realtime: WebSocket for live messaging   │  │
+│  └──────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────┘
                         ↓
 ┌─────────────────────────────────────────────────┐
 │           Google Gemini 2.0 Flash API            │
-│        (server-side only, key never exposed)     │
+│        (server-side only, optional)              │
 └─────────────────────────────────────────────────┘
 ```
+
+For detailed architecture documentation, see [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 
 ---
 
@@ -334,23 +423,70 @@ cinegen/
 
 ## 8. Run Locally
 
+### Prerequisites
+- Node.js 18+ and npm
+- Supabase account (free tier)
+
+### Setup Steps
+
+**1. Clone Repository**
 ```bash
 git clone https://github.com/deekshitha875/cinegen.git
 cd cinegen
 npm install
+```
+
+**2. Set Up Supabase**
+
+Follow the complete setup guide in [SETUP.md](./SETUP.md):
+- Create Supabase project
+- Run database schema (database/schema.sql)
+- Create storage buckets
+- Seed database with creator profiles
+
+**3. Environment Variables**
+```bash
+cp .env.example .env.local
+```
+
+Edit `.env.local` with your Supabase credentials:
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+GEMINI_API_KEY=your_gemini_key (optional)
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
+```
+
+**4. Seed Database**
+```bash
+npm run db:seed
+```
+
+This creates:
+- 18 creator profiles
+- 1 brand account (`brand@cinegen.demo` / `Demo@123`)
+- Sample briefs and proposals
+
+**5. Run Development Server**
+```bash
 npm run dev
 ```
 
 Open **http://localhost:3000**
 
-### Enable Gemini AI (optional)
-```bash
-cp .env.example .env.local
-# Add: GEMINI_API_KEY=your_key_here
-```
-Get a free key at [aistudio.google.com](https://aistudio.google.com)
+**6. Demo Login**
+- Brand: `brand@cinegen.demo` / `Demo@123`
+- Creator: `aryan@cinegen.demo` / `Demo@123`
 
-> App works 100% without a Gemini key — Brief Builder uses smart rule-based fallback automatically.
+> App works without Gemini API key — Brief Builder uses smart rule-based fallback.
+
+### Additional Documentation
+- [SETUP.md](./SETUP.md) — Complete Supabase setup guide
+- [DEPLOYMENT.md](./DEPLOYMENT.md) — Deploy to Render
+- [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) — System architecture
+- [docs/API.md](./docs/API.md) — API reference
+- [TESTING.md](./TESTING.md) — Test scenarios
 
 ---
 
@@ -379,10 +515,57 @@ Get a free key at [aistudio.google.com](https://aistudio.google.com)
 
 ---
 
+---
+
+## 10. Screenshots
+
+### Homepage Hero
+Animated gradient background with floating particles, 3D card tilt effects, and gradient text.
+
+### Creator Discovery
+18 verified creators with glass-morphic cards, animated gradient borders, and verified badges with pulse glow.
+
+### AI Brief Builder
+Type a rough idea → Gemini AI generates complete brief → Brief Intelligence scores in real-time → Confetti on publish.
+
+### Brief Intelligence Panel
+Real-time audit with animated score ring (0-100), color-coded errors/warnings/tips, expandable accordion sections.
+
+### Style DNA Radar Chart
+6-axis SVG radar chart with animated path drawing, gradient fill, and hover tooltips.
+
+### Real-time Messaging
+Live 1-on-1 conversations with conversation sidebar, unread badges, typing animations, and instant message delivery.
+
+### Dashboard (Brand)
+Gradient stat cards with count-up animations, engagement stepper, confetti on "Mark Delivered", recent proposals.
+
+### Dashboard (Creator)
+Proposal tracker (Pending → Accepted → Rejected), matching briefs alert with pulsing badge, open briefs feed.
+
+> **Note:** Add actual screenshots to `/public/screenshots/` directory and embed here with `![Alt text](./public/screenshots/image.png)`
+
+---
+
+## 11. Documentation
+
+- [README.md](./README.md) — This file
+- [SETUP.md](./SETUP.md) — Supabase setup guide
+- [DEPLOYMENT.md](./DEPLOYMENT.md) — Production deployment to Render
+- [CHANGELOG.md](./CHANGELOG.md) — Version history and migration guide
+- [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) — System architecture deep dive
+- [docs/API.md](./docs/API.md) — Complete API reference with examples
+- [TESTING.md](./TESTING.md) — Test scenarios and QA checklist
+- [.env.example](./.env.example) — Environment variables template
+
+---
+
 <div align="center">
 
 **Built with ❤️ for the Kampus.VC Hackathon**
 
-[🚀 Live Demo](https://cinegen-bytexl.vercel.app) · [💻 GitHub](https://github.com/deekshitha875/cinegen)
+[🚀 Live Demo](https://cinegen.onrender.com) · [💻 GitHub](https://github.com/deekshitha875/cinegen) · [📖 Docs](./docs/)
+
+**Version 2.0.0** | Powered by Next.js, Supabase, and Gemini AI
 
 </div>
