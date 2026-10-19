@@ -155,6 +155,60 @@ Open [http://localhost:3000](http://localhost:3000)
 **Brand account:**
 - Email: `arjun@nexusbrands.com` / Password: `Demo@123`
 
+## Password Reset Flow
+
+CineGen includes a complete password reset flow using Supabase Auth.
+
+### How It Works
+
+1. User clicks "Forgot password?" on the login page
+2. Enters their email address
+3. Supabase sends a magic link to their email (1-hour expiry)
+4. User clicks the link, which redirects to `/auth/reset-password`
+5. User enters a new password (validated: 8+ chars, 1 uppercase, 1 number)
+6. Password is updated in Supabase Auth and the users table
+7. User is redirected to login with their new password
+
+### Supabase Email Configuration
+
+For password reset to work in production, you must configure Supabase email:
+
+1. Go to **Authentication** → **Email Templates** in Supabase dashboard
+2. Find **"Reset Password"** template
+3. Ensure the redirect URL contains: `{{ .SiteURL }}/auth/reset-password`
+4. Go to **Authentication** → **URL Configuration**
+5. Add your production URL to **Redirect URLs**: `https://your-app.com/auth/reset-password`
+6. For local development, add: `http://localhost:3000/auth/reset-password`
+
+### Environment Variable
+
+Ensure your `.env.local` includes:
+
+```env
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
+```
+
+For production, set this to your actual domain (e.g., `https://cinegen.com`).
+
+### Testing Locally
+
+#### With Email (Recommended)
+1. Configure SMTP in Supabase dashboard (or use Supabase's test email service)
+2. Go to `/login` → click "Forgot password?"
+3. Enter any valid user email (e.g., `aryan@example.com`)
+4. Check your email for the reset link
+5. Click the link and set a new password
+
+#### Without Email (Development)
+1. In Supabase dashboard, go to **Authentication** → **Users**
+2. Find the user you want to test with
+3. Copy their User UID
+4. In browser, navigate to: `http://localhost:3000/auth/reset-password#access_token=...`
+   (The token is automatically set when clicking the email link)
+
+### Demo Accounts
+Demo accounts (with `@cinegen.demo` emails) cannot use password reset. The system shows an error message: "Password reset not available for demo accounts. Demo password is always Demo@123"
+
 ## Troubleshooting
 
 ### Error: "relation does not exist"
