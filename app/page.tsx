@@ -8,6 +8,10 @@ import {
   ArrowRight, Sparkles, Play, Search, FileText, Handshake,
   Star, CheckCircle2, Zap, TrendingUp, Users, Briefcase, Film, X
 } from "lucide-react";
+import Hero3DCreatorCard from "@/components/hero/Hero3DCreatorCard";
+import HeroFloatingBadge from "@/components/hero/HeroFloatingBadge";
+import HeroMeshGradient from "@/components/hero/HeroMeshGradient";
+import HeroAnimatedLines from "@/components/hero/HeroAnimatedLines";
 
 const ParticleBackground = dynamic(() => import("@/components/ui/ParticleBackground"), { ssr: false });
 
@@ -118,96 +122,206 @@ export default function HomePage() {
       )}
 
       {/* Hero */}
-      <section className="relative overflow-hidden pt-20 pb-32">
+      <section className="relative overflow-hidden pt-20 sm:pt-24 lg:pt-32 pb-24 sm:pb-32 lg:pb-40 min-h-[80vh] sm:min-h-[85vh] lg:min-h-[90vh] flex items-center">
         {/* Particle Background */}
         <ParticleBackground />
 
-        {/* Animated gradient background */}
+        {/* Enhanced background with mesh gradient */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-indigo-900/20 to-teal-900/20 animate-gradient-shift"
-            style={{ backgroundSize: "400% 400%" }} />
-          <img
-            src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=1600&q=80&auto=format&fit=crop"
-            alt=""
-            className="w-full h-full object-cover opacity-[0.05]"
+          <HeroMeshGradient />
+          
+          {/* Noise texture overlay - enhanced */}
+          <div 
+            className="absolute inset-0 opacity-[0.04]" 
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E")`
+            }} 
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-transparent to-background" />
-          <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-background/80" />
-          <div className="absolute top-20 left-1/4 w-96 h-96 bg-violet-600/20 rounded-full blur-3xl animate-float-slow" />
-          <div className="absolute top-40 right-1/4 w-64 h-64 bg-cyan-500/15 rounded-full blur-3xl animate-float-slow" style={{ animationDelay: "2s" }} />
+          
+          {/* Gradient vignette overlays */}
+          <div className="absolute inset-0 bg-gradient-to-b from-background/70 via-transparent to-background" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/60 via-transparent to-background/60" />
+          
+          {/* Bottom fade */}
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-32 bg-gradient-to-t from-background to-transparent" />
         </div>
 
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          {/* Badge */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-sm font-medium mb-8">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>AI-Native Creative Marketplace · Kampus.VC Hackathon</span>
-          </motion.div>
+        {/* Animated lines connecting elements */}
+        <HeroAnimatedLines />
 
-          {/* Headline with gradient text + fade-in-up animation */}
-          <motion.h1 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.6 }}
-            className="font-display font-bold text-5xl sm:text-6xl lg:text-7xl leading-tight mb-6">
-            Hire the world&apos;s best{" "}
-            <span className="gradient-text">AI creators</span>
-            <br />
-            for your brand
-          </motion.h1>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+            
+            {/* Left: Content (spans 7 columns on desktop) */}
+            <div className="lg:col-span-7 z-10 text-center sm:text-left">
+              {/* Badge */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-sm font-medium mb-8">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>AI-Native Creative Marketplace</span>
+              </motion.div>
 
-          {/* Subtitle */}
-          <motion.p 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.6 }}
-            className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
-            CineGen connects brands with verified AI filmmakers, animators, and generative artists. Discover talent, build briefs with AI, get explainable match scores — all in one place.
-          </motion.p>
+              {/* Headline with enhanced typography */}
+              <motion.h1 
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1, duration: 0.6 }}
+                className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl leading-[1.1] mb-6 sm:mb-8 max-w-4xl mx-auto sm:mx-0 tracking-tight">
+                <span className="font-semibold">Hire the world&apos;s best</span>
+                <br className="hidden sm:block" />
+                <span className="gradient-text-enhanced font-extrabold italic"> AI creators</span>
+                <br className="hidden sm:block" />
+                <span className="font-light">for your brand</span>
+              </motion.h1>
 
-          {/* CTAs with glow + scale on hover */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.6 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
-            <Link
-              href="/login"
-              className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-violet-600 to-violet-500 text-white rounded-xl font-semibold text-base hover:from-violet-500 hover:to-violet-400 hover:scale-105 transition-all shadow-lg shadow-violet-500/30 btn-glow">
-              <Play className="w-4 h-4" />
-              Try Demo — Instant Access
-            </Link>
-            <Link
-              href="/creators"
-              className="flex items-center gap-2 px-8 py-4 glass border border-white/10 text-foreground rounded-xl font-semibold text-base hover:bg-white/5 hover:scale-105 transition-all">
-              <Search className="w-4 h-4" />
-              Browse Creators
-            </Link>
-          </motion.div>
+              {/* Subtitle */}
+              <motion.p 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.6 }}
+                className="text-lg sm:text-xl lg:text-2xl text-muted-foreground/90 max-w-xl sm:max-w-2xl mx-auto sm:mx-0 mb-8 sm:mb-10 leading-relaxed">
+                CineGen connects brands with verified AI filmmakers, animators, and generative artists. Discover talent, build briefs with AI, get explainable match scores — all in one place.
+              </motion.p>
 
-          {/* Creator avatars */}
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-            <div className="flex -space-x-2">
-              {FEATURED_CREATORS.slice(0, 5).map((c) => (
-                <motion.img
-                  key={c.id}
-                  whileHover={{ scale: 1.2, zIndex: 10 }}
-                  src={c.avatar}
-                  alt={c.name}
-                  className="w-7 h-7 rounded-full border-2 border-background object-cover transition-transform"
-                />
-              ))}
+              {/* CTAs with glow + scale on hover */}
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.6 }}
+                className="flex flex-col sm:flex-row items-center sm:items-start justify-center sm:justify-start gap-4 mb-8 sm:mb-12">
+                <Link
+                  href="/login"
+                  className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-violet-600 to-violet-500 text-white rounded-xl font-semibold text-base hover:from-violet-500 hover:to-violet-400 hover:scale-105 transition-all shadow-lg shadow-violet-500/30 btn-glow">
+                  <Play className="w-4 h-4" />
+                  Try Demo — Instant Access
+                </Link>
+                <Link
+                  href="/creators"
+                  className="flex items-center gap-2 px-8 py-4 glass border border-white/10 text-foreground rounded-xl font-semibold text-base hover:bg-white/5 hover:scale-105 transition-all">
+                  <Search className="w-4 h-4" />
+                  Browse Creators
+                </Link>
+              </motion.div>
+
+              {/* Creator avatars */}
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.4 }}
+                className="flex items-center justify-center sm:justify-start gap-2 text-sm text-muted-foreground">
+                <div className="flex -space-x-2">
+                  {FEATURED_CREATORS.slice(0, 5).map((c) => (
+                    <motion.img
+                      key={c.id}
+                      whileHover={{ scale: 1.2, zIndex: 10 }}
+                      src={c.avatar}
+                      alt={c.name}
+                      className="w-7 h-7 rounded-full border-2 border-background object-cover transition-transform"
+                    />
+                  ))}
+                </div>
+                <span>18 verified AI creators ready to hire</span>
+              </motion.div>
             </div>
-            <span>18 verified AI creators ready to hire</span>
+
+            {/* Right: 3D Creator Cards (spans 5 columns on desktop) */}
+            <div className="lg:col-span-5 relative h-[500px] hidden lg:block">
+              {/* Card 1: Top-left, rotated */}
+              <div className="absolute top-0 left-0 z-20">
+                <Hero3DCreatorCard 
+                  creator={{
+                    name: "Aryan Kapoor",
+                    avatar: "https://picsum.photos/seed/aryan/200/200",
+                    specialty: "AI Filmmaker",
+                    tools: ["Runway", "Kling", "Midjourney"]
+                  }}
+                  rotation={{ y: -12, z: 3 }}
+                  parallaxMultiplier={0.3}
+                />
+              </div>
+              
+              {/* Card 2: Center-right, rotated opposite */}
+              <div className="absolute top-32 right-0 z-30">
+                <Hero3DCreatorCard 
+                  creator={{
+                    name: "Marcus Chen",
+                    avatar: "https://picsum.photos/seed/marcus/200/200",
+                    specialty: "AI VFX Director",
+                    tools: ["Sora", "Runway"]
+                  }}
+                  rotation={{ y: 8, z: -2 }}
+                  parallaxMultiplier={0.5}
+                />
+              </div>
+              
+              {/* Card 3: Bottom-left, subtle rotation */}
+              <div className="absolute bottom-0 left-12 z-10">
+                <Hero3DCreatorCard 
+                  creator={{
+                    name: "Lena Volkov",
+                    avatar: "https://picsum.photos/seed/lena/200/200",
+                    specialty: "Music Video Director",
+                    tools: ["Higgsfield", "Runway", "Kling"]
+                  }}
+                  rotation={{ y: -5, z: 1 }}
+                  parallaxMultiplier={0.2}
+                />
+              </div>
+              
+              {/* Floating badges scattered around cards */}
+              <div className="absolute top-16 right-20">
+                <HeroFloatingBadge icon="✓" text="Verified" color="violet" delay={0.5} />
+              </div>
+              <div className="absolute bottom-24 right-8">
+                <HeroFloatingBadge icon="★" text="Top Rated" color="amber" delay={1.2} />
+              </div>
+              <div className="absolute top-48 left-32">
+                <HeroFloatingBadge icon="🎬" text="Studio Pro" color="cyan" delay={0.8} />
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        {/* Floating decorative elements - absolute positioned */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden hidden lg:block">
+          {/* Tool logo badges - subtle, small */}
+          <motion.div 
+            className="absolute top-24 left-[15%] opacity-20"
+            animate={{ y: [0, -15, 0] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}>
+            <div className="w-12 h-12 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center">
+              <img src="/logos/runway.svg" alt="" className="w-6 h-6 opacity-60" />
+            </div>
           </motion.div>
+          
+          <motion.div 
+            className="absolute bottom-32 right-[20%] opacity-20"
+            animate={{ y: [0, -12, 0] }}
+            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}>
+            <div className="w-12 h-12 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center">
+              <img src="/logos/midjourney.svg" alt="" className="w-6 h-6 opacity-60" />
+            </div>
+          </motion.div>
+          
+          {/* Decorative geometric shapes */}
+          <motion.div
+            className="absolute top-40 right-[10%] w-24 h-24 border-2 border-violet-500/10 rounded-full"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          />
+          
+          <motion.div
+            className="absolute bottom-40 left-[8%] w-16 h-16 border-2 border-cyan-500/10 rounded-lg"
+            animate={{ rotate: -360 }}
+            transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+          />
+          
+          {/* Subtle gradient orbs for extra depth */}
+          <div className="absolute top-1/3 left-[5%] w-32 h-32 bg-violet-500/5 rounded-full blur-2xl animate-pulse-slow" />
+          <div className="absolute bottom-1/4 right-[12%] w-40 h-40 bg-cyan-500/5 rounded-full blur-2xl animate-pulse-slow" style={{ animationDelay: "1.5s" }} />
         </div>
       </section>
 
