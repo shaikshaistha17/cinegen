@@ -46,10 +46,9 @@ function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }
 }
 
 export default function CreatorsPage() {
-  const creators = useCreators();
+  const { creators, loading } = useCreators();
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [loading] = useState(false);
 
   const setFilter = <K extends keyof FilterState>(key: K, value: FilterState[K]) =>
     setFilters((f) => ({ ...f, [key]: value }));

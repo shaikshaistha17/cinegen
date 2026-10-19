@@ -1,6 +1,6 @@
 // ─── Enums & Literals ────────────────────────────────────────────────────────
 
-export type UserRole = "brand" | "creator" | "guest";
+export type UserRole = "brand" | "creator" | "guest" | "admin";
 
 export type VerificationBadge = "Studio" | "Verified" | "Rising" | "Unverified";
 

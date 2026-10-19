@@ -182,7 +182,7 @@ function BrandView() {
   const { briefs } = useBriefs();
   const { session } = useSession();
   const { proposals, updateProposalStatus } = useProposals();
-  const creators = useCreators();
+  const { creators } = useCreators();
   const [expandedBrief, setExpandedBrief] = useState<string | null>(null);
 
   const myBriefs = briefs.filter((b) => b.brandId === session?.brandId || b.brandId === session?.userId || b.brandId === "brand-001");
@@ -288,33 +288,32 @@ function BrandView() {
 function CreatorView() {
   const { briefs } = useBriefs();
   const { session } = useSession();
-  const { proposals, saveProposal, getProposalsByCreator } = useProposals();
+  const { proposals, submitProposal, getProposalsForCreator } = useProposals();
   const [proposingFor, setProposingFor] = useState<string | null>(null);
   const [proposalForm, setProposalForm] = useState({ message: "", price: "", timelineDays: "" });
 
   const openBriefs = briefs.filter((b) => b.status === "Open");
-  const myProposals = getProposalsByCreator(session?.creatorId ?? "creator-001");
+  const myProposals = getProposalsForCreator(session?.creatorId ?? "creator-001");
   const appliedBriefIds = new Set(myProposals.map((p) => p.briefId));
 
-  const handleSubmitProposal = (briefId: string) => {
+  const handleSubmitProposal = async (briefId: string) => {
     if (!proposalForm.message.trim() || !proposalForm.price || !proposalForm.timelineDays) {
       toast.error("Please fill all fields");
       return;
     }
-    const proposal: Proposal = {
-      id: `proposal-${Date.now()}`,
-      briefId,
-      creatorId: session?.creatorId ?? "creator-001",
-      message: proposalForm.message,
-      price: Number(proposalForm.price),
-      timelineDays: Number(proposalForm.timelineDays),
-      status: "Pending",
-      createdAt: new Date().toISOString(),
-    };
-    saveProposal(proposal);
-    toast.success("Proposal submitted!");
-    setProposingFor(null);
-    setProposalForm({ message: "", price: "", timelineDays: "" });
+    try {
+      await submitProposal(briefId, {
+        creatorId: session?.creatorId ?? "creator-001",
+        message: proposalForm.message,
+        price: Number(proposalForm.price),
+        timelineDays: Number(proposalForm.timelineDays),
+      });
+        toast.success("Proposal submitted!");
+      setProposingFor(null);
+      setProposalForm({ message: "", price: "", timelineDays: "" });
+    } catch (error) {
+      toast.error("Failed to submit proposal");
+    }
   };
 
   return (

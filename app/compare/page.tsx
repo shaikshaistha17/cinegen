@@ -46,7 +46,7 @@ function getBest(creators: CreatorProfile[], key: string): string | null {
 }
 
 export default function ComparePage() {
-  const allCreators = useCreators();
+  const { creators: allCreators } = useCreators();
   const [selected, setSelected] = useState<CreatorProfile[]>([]);
   const [search, setSearch] = useState("");
 

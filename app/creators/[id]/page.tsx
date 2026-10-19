@@ -207,7 +207,7 @@ function PortfolioModal({ item, onClose }: { item: PortfolioItem; onClose: () =>
 
 export default function CreatorProfilePage({ params }: { params: { id: string } }) {
   const { id } = params;
-  const creator = useCreator(id);
+  const { creator } = useCreator(id);
   const { session } = useSession();
   const [selectedItem, setSelectedItem] = useState<PortfolioItem | null>(null);
 
@@ -222,7 +222,7 @@ export default function CreatorProfilePage({ params }: { params: { id: string } 
     );
   }
 
-  const badge = BADGE_CONFIG[creator.verification.badge];
+  const badge = BADGE_CONFIG[creator.verification.badge as keyof typeof BADGE_CONFIG];
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

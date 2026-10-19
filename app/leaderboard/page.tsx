@@ -21,7 +21,7 @@ const RANK_STYLES = [
 ];
 
 export default function LeaderboardPage() {
-  const creators = useCreators();
+  const { creators } = useCreators();
   const [period, setPeriod] = useState<Period>("all");
   const [metric, setMetric] = useState<"projects" | "rating" | "repeat">("projects");
 

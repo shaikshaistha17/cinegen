@@ -42,7 +42,7 @@ function BrandDashboard() {
   const { session } = useSession();
   const { briefs } = useBriefs();
   const { proposals } = useProposals();
-  const creators = useCreators();
+  const { creators } = useCreators();
   const [delivered, setDelivered] = useState<string[]>([]);
 
   const myBriefs = briefs.filter((b) => b.brandId === "brand-001");
@@ -191,10 +191,10 @@ function BrandDashboard() {
 function CreatorDashboard() {
   const { session } = useSession();
   const { briefs } = useBriefs();
-  const { proposals, getProposalsByCreator } = useProposals();
+  const { proposals, getProposalsForCreator } = useProposals();
 
   const myId = session?.creatorId ?? "creator-001";
-  const myProposals = getProposalsByCreator(myId);
+  const myProposals = getProposalsForCreator(myId);
   const openBriefs = briefs.filter((b) => b.status === "Open");
   const acceptedProposals = myProposals.filter((p) => p.status === "Accepted");
 
