@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to CineGen - Start Finding Creators</title>
+    <style>
+        @media only screen and (max-width: 600px) {
+            .container { width: 100% !important; }
+            .button { width: 100% !important; }
+            .content { padding: 20px !important; }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #0f0f1a; font-family: Arial, Helvetica, sans-serif;">
+    <!-- DEMO Watermark -->
+    <div style="position: absolute; top: 10px; right: 10px; color: rgba(255, 255, 255, 0.1); font-size: 24px; font-weight: bold; z-index: 1000;">DEMO</div>
+    
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #0f0f1a;">
+        <tr>
+            <td style="padding: 40px 20px;">
+                <!-- Main Container -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" class="container" style="margin: 0 auto; background-color: #1a1a2e; border-radius: 16px; overflow: hidden; max-width: 600px;">
+                    
+                    <!-- Header with Gradient -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%); padding: 40px 30px; text-align: center;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 32px; font-weight: bold; letter-spacing: -0.5px;">CineGen</h1>
+                            <p style="margin: 8px 0 0 0; color: rgba(255, 255, 255, 0.9); font-size: 14px;">AI Creator Marketplace</p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td class="content" style="padding: 40px 30px; color: #e5e5e5;">
+                            <h2 style="margin: 0 0 8px 0; color: #ffffff; font-size: 28px; font-weight: 600;">Welcome to CineGen! 🎉</h2>
+                            <p style="margin: 0 0 24px 0; font-size: 16px; color: #a1a1aa;">Hi {{USER_NAME}},</p>
+                            
+                            <p style="margin: 0 0 16px 0; font-size: 16px; line-height: 1.6; color: #d4d4d8;">
+                                We're thrilled to have you join CineGen. You now have access to thousands of talented creators ready to bring your campaigns to life with AI-powered precision matching.
+                            </p>
+                            
+                            <!-- Key Features -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 24px 0;">
+                                <tr>
+                                    <td style="padding: 20px; background-color: rgba(124, 58, 237, 0.1); border-radius: 8px; border-left: 4px solid #7c3aed;">
+                                        <h3 style="margin: 0 0 12px 0; color: #c4b5fd; font-size: 16px; font-weight: 600;">🎯 AI-Powered Matching</h3>
+                                        <p style="margin: 0; font-size: 14px; color: #d4d4d8; line-height: 1.5;">
+                                            Our AI analyzes creator portfolios, style, and performance to match you with the perfect talent for your brief.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 16px 0;">
+                                <tr>
+                                    <td style="padding: 20px; background-color: rgba(6, 182, 212, 0.1); border-radius: 8px; border-left: 4px solid #06b6d4;">
+                                        <h3 style="margin: 0 0 12px 0; color: #67e8f9; font-size: 16px; font-weight: 600;">👥 Verified Creator Pool</h3>
+                                        <p style="margin: 0; font-size: 14px; color: #d4d4d8; line-height: 1.5;">
+                                            Browse portfolios, reviews, and past work from vetted creators across video, animation, and content creation.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 16px 0;">
+                                <tr>
+                                    <td style="padding: 20px; background-color: rgba(79, 70, 229, 0.1); border-radius: 8px; border-left: 4px solid #4f46e5;">
+                                        <h3 style="margin: 0 0 12px 0; color: #a5b4fc; font-size: 16px; font-weight: 600;">📋 Brief Management</h3>
+                                        <p style="margin: 0; font-size: 14px; color: #d4d4d8; line-height: 1.5;">
+                                            Post briefs, receive proposals, and manage projects all in one place with real-time collaboration tools.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Quick Start Steps -->
+                            <h3 style="margin: 32px 0 16px 0; color: #ffffff; font-size: 18px; font-weight: 600;">Get Started in 3 Easy Steps:</h3>
+                            
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                <tr>
+                                    <td style="padding: 12px 0; font-size: 15px; color: #d4d4d8; line-height: 1.6;">
+                                        <span style="display: inline-block; width: 28px; height: 28px; background: linear-gradient(135deg, #7c3aed, #06b6d4); border-radius: 50%; text-align: center; line-height: 28px; color: #ffffff; font-weight: 600; margin-right: 12px;">1</span>
+                                        Complete your brand profile and upload your logo
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 12px 0; font-size: 15px; color: #d4d4d8; line-height: 1.6;">
+                                        <span style="display: inline-block; width: 28px; height: 28px; background: linear-gradient(135deg, #7c3aed, #06b6d4); border-radius: 50%; text-align: center; line-height: 28px; color: #ffffff; font-weight: 600; margin-right: 12px;">2</span>
+                                        Post your first brief or use our AI Brief Builder
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 12px 0; font-size: 15px; color: #d4d4d8; line-height: 1.6;">
+                                        <span style="display: inline-block; width: 28px; height: 28px; background: linear-gradient(135deg, #7c3aed, #06b6d4); border-radius: 50%; text-align: center; line-height: 28px; color: #ffffff; font-weight: 600; margin-right: 12px;">3</span>
+                                        Review proposals and hire the perfect creator
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- CTA Button -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 32px 0;">
+                                <tr>
+                                    <td style="border-radius: 8px; background: linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%);">
+                                        <a href="{{CTA_LINK}}" class="button" style="display: inline-block; padding: 16px 48px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; border-radius: 8px;">
+                                            Go to Dashboard
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <p style="margin: 24px 0 0 0; font-size: 14px; line-height: 1.6; color: #a1a1aa;">
+                                Questions? Our team is here to help. Reply to this email or visit our help center.
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 30px; background-color: #0f0f1a; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                            <p style="margin: 0 0 16px 0; font-size: 14px; color: #71717a; text-align: center;">
+                                Need help? Contact us at <a href="mailto:support@cinegen.ai" style="color: #06b6d4; text-decoration: none;">support@cinegen.ai</a>
+                            </p>
+                            
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                <tr>
+                                    <td style="text-align: center; padding: 16px 0;">
+                                        <a href="#" style="color: #71717a; text-decoration: none; margin: 0 12px; font-size: 12px;">Twitter</a>
+                                        <a href="#" style="color: #71717a; text-decoration: none; margin: 0 12px; font-size: 12px;">Instagram</a>
+                                        <a href="#" style="color: #71717a; text-decoration: none; margin: 0 12px; font-size: 12px;">LinkedIn</a>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <p style="margin: 16px 0 0 0; font-size: 12px; color: #52525b; text-align: center; line-height: 1.6;">
+                                © 2024 CineGen AI. All rights reserved.<br>
+                                123 Creator Street, San Francisco, CA 94103<br>
+                                <a href="#" style="color: #52525b; text-decoration: underline;">Unsubscribe</a>
+                            </p>
+                        </td>
+                    </tr>
+                    
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

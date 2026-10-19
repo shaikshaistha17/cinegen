@@ -333,6 +333,227 @@ When deploying to production (Vercel, Render, etc.):
 4. Consider using different passwords for production seed data
 5. Set up proper authentication flow (not localStorage-based)
 
+## Email Configuration
+
+CineGen includes professional branded email templates for transactional emails.
+
+### Available Email Templates
+
+| Template | Purpose | Key Variables |
+|----------|---------|---------------|
+| **password-reset.html** | Password reset flow | `{{RESET_LINK}}` |
+| **welcome-brand.html** | Brand account onboarding | `{{USER_NAME}}`, `{{CTA_LINK}}` |
+| **welcome-creator.html** | Creator account onboarding | `{{USER_NAME}}`, `{{CTA_LINK}}` |
+| **otp-verification.html** | Email/phone verification | `{{OTP_CODE}}` |
+| **proposal-received.html** | Brand notification for new proposals | `{{CREATOR_NAME}}`, `{{BRIEF_TITLE}}`, `{{PROPOSAL_LINK}}` |
+| **brief-match.html** | Creator notification for matched briefs | `{{BRIEF_TITLE}}`, `{{MATCH_SCORE}}`, `{{BRIEF_LINK}}`, `{{BRAND_NAME}}` |
+
+### Preview Email Templates
+
+To preview all email templates locally:
+
+```bash
+npm run dev
+```
+
+Navigate to: [http://localhost:3000/api/test-emails](http://localhost:3000/api/test-emails)
+
+This shows all 6 templates with sample data. You can copy HTML or view plain text versions.
+
+⚠️ **Important**: Remove the `/app/api/test-emails` route before production deployment.
+
+### Customizing Email Templates
+
+Email templates are stored in `/emails/` directory. To customize:
+
+1. Open the HTML file you want to edit (e.g., `/emails/welcome-brand.html`)
+2. Modify colors, text, or layout (all CSS is inline for email client compatibility)
+3. Use `{{VARIABLE_NAME}}` syntax for dynamic content
+4. Test changes by viewing `/api/test-emails`
+
+**Design Guidelines:**
+- All CSS must be inline styles (Outlook compatibility)
+- Use table-based layouts (no flexbox or grid in emails)
+- Keep width under 600px for mobile
+- Use web-safe fonts: Arial, Helvetica, sans-serif
+- Brand colors: `#7c3aed` (violet), `#06b6d4` (cyan), `#4f46e5` (indigo)
+
+### Integrating with Email Service
+
+CineGen templates are currently generated in `/lib/email-templates.ts` but not sent automatically. To integrate with an email service:
+
+#### Option 1: Resend (Recommended for Next.js)
+
+1. Sign up at [resend.com](https://resend.com) (free tier: 3,000 emails/month)
+2. Get your API key
+3. Add to `.env.local`:
+
+```env
+RESEND_API_KEY=re_xxxxxxxxxxxx
+RESEND_FROM_EMAIL=noreply@cinegen.ai
+```
+
+4. Install Resend SDK:
+
+```bash
+npm install resend
+```
+
+5. Create `/lib/email-sender.ts`:
+
+```typescript
+import { Resend } from 'resend';
+import { EmailTemplate } from './email-templates';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+export async function sendEmail(
+  to: string,
+  template: EmailTemplate
+): Promise<void> {
+  try {
+    await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL || 'CineGen <onboarding@resend.dev>',
+      to,
+      subject: template.subject,
+      html: template.html,
+      text: template.text,
+    });
+    console.log(`✅ Email sent to ${to}: ${template.subject}`);
+  } catch (error) {
+    console.error('❌ Failed to send email:', error);
+    throw error;
+  }
+}
+```
+
+6. Use in your API routes:
+
+```typescript
+import { generateWelcomeEmail } from '@/lib/email-templates';
+import { sendEmail } from '@/lib/email-sender';
+
+// After user registration:
+const emailTemplate = generateWelcomeEmail(userName, 'creator');
+await sendEmail(userEmail, emailTemplate);
+```
+
+#### Option 2: SendGrid
+
+1. Sign up at [sendgrid.com](https://sendgrid.com) (free tier: 100 emails/day)
+2. Create API key with "Mail Send" permissions
+3. Add to `.env.local`:
+
+```env
+SENDGRID_API_KEY=SG.xxxxxxxxxxxx
+SENDGRID_FROM_EMAIL=noreply@cinegen.ai
+```
+
+4. Install SendGrid SDK:
+
+```bash
+npm install @sendgrid/mail
+```
+
+5. Create `/lib/email-sender.ts`:
+
+```typescript
+import sgMail from '@sendgrid/mail';
+import { EmailTemplate } from './email-templates';
+
+sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
+
+export async function sendEmail(
+  to: string,
+  template: EmailTemplate
+): Promise<void> {
+  try {
+    await sgMail.send({
+      to,
+      from: process.env.SENDGRID_FROM_EMAIL || 'noreply@cinegen.ai',
+      subject: template.subject,
+      html: template.html,
+      text: template.text,
+    });
+    console.log(`✅ Email sent to ${to}: ${template.subject}`);
+  } catch (error) {
+    console.error('❌ Failed to send email:', error);
+    throw error;
+  }
+}
+```
+
+#### Option 3: Supabase SMTP (Custom SMTP)
+
+1. Go to **Authentication** → **Email Templates** in Supabase dashboard
+2. Click **"SMTP Settings"** at the bottom
+3. Enter your SMTP provider details (Gmail, AWS SES, etc.)
+4. Override email templates with CineGen branded versions
+5. Use `supabase.auth.resetPasswordForEmail()` for password resets (auto-sends)
+
+**Note**: Supabase Auth handles password reset emails automatically. For custom emails (welcome, proposals, matches), use Resend or SendGrid.
+
+### Using Email Templates in Code
+
+Import and use the template generators from `/lib/email-templates.ts`:
+
+```typescript
+import {
+  generatePasswordResetEmail,
+  generateWelcomeEmail,
+  generateOTPEmail,
+  generateProposalNotification,
+  generateBriefMatchEmail,
+} from '@/lib/email-templates';
+
+// Example: Send welcome email
+const template = generateWelcomeEmail('Arjun Mehta', 'brand');
+await sendEmail('arjun@example.com', template);
+
+// Example: Send OTP verification
+const otpTemplate = generateOTPEmail('123456', 'user@example.com');
+await sendEmail('user@example.com', otpTemplate);
+
+// Example: Notify brand of new proposal
+const proposalTemplate = generateProposalNotification(
+  'Maya Patel',
+  'Summer Campaign 2025',
+  'https://cinegen.ai/proposals/abc123'
+);
+await sendEmail('brand@company.com', proposalTemplate);
+```
+
+### Production Checklist
+
+Before deploying to production:
+
+- [ ] Remove or protect `/api/test-emails` route (add auth middleware)
+- [ ] Set up email service (Resend/SendGrid) with production API keys
+- [ ] Verify DNS records for custom domain email sending
+- [ ] Test all email templates with real email addresses
+- [ ] Configure Supabase Auth email templates with production URLs
+- [ ] Add unsubscribe functionality to footer links
+- [ ] Set up email analytics/tracking (optional)
+- [ ] Comply with email regulations (CAN-SPAM, GDPR)
+
+### Troubleshooting Emails
+
+**Templates not rendering correctly:**
+- Test in multiple email clients (Gmail, Outlook, Apple Mail)
+- Validate HTML at [Email on Acid](https://www.emailonacid.com/) or [Litmus](https://www.litmus.com/)
+- Ensure all CSS is inline (no external stylesheets)
+
+**Variables not being replaced:**
+- Check variable names match exactly (case-sensitive)
+- Verify you're calling the right template generator function
+- Use browser console to inspect generated HTML
+
+**Emails going to spam:**
+- Set up SPF, DKIM, and DMARC records for your domain
+- Use a reputable email service (Resend/SendGrid)
+- Avoid spam trigger words in subject lines
+- Include unsubscribe link in footer
+
 ## Next Steps
 
 - Implement proper authentication (replace localStorage with Supabase Auth)
@@ -340,6 +561,7 @@ When deploying to production (Vercel, Render, etc.):
 - Implement file upload to Storage buckets
 - Add real-time subscriptions for messages
 - Set up database backups
+- Integrate email templates with Resend or SendGrid
 
 ## Support
 

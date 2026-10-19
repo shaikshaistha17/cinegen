@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Brief Match - {{BRIEF_TITLE}}</title>
+    <style>
+        @media only screen and (max-width: 600px) {
+            .container { width: 100% !important; }
+            .button { width: 100% !important; }
+            .content { padding: 20px !important; }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #0f0f1a; font-family: Arial, Helvetica, sans-serif;">
+    <!-- DEMO Watermark -->
+    <div style="position: absolute; top: 10px; right: 10px; color: rgba(255, 255, 255, 0.1); font-size: 24px; font-weight: bold; z-index: 1000;">DEMO</div>
+    
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #0f0f1a;">
+        <tr>
+            <td style="padding: 40px 20px;">
+                <!-- Main Container -->
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" class="container" style="margin: 0 auto; background-color: #1a1a2e; border-radius: 16px; overflow: hidden; max-width: 600px;">
+                    
+                    <!-- Header with Gradient -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #06b6d4 0%, #4f46e5 100%); padding: 40px 30px; text-align: center;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 32px; font-weight: bold; letter-spacing: -0.5px;">CineGen</h1>
+                            <p style="margin: 8px 0 0 0; color: rgba(255, 255, 255, 0.9); font-size: 14px;">AI Creator Marketplace</p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td class="content" style="padding: 40px 30px; color: #e5e5e5;">
+                            <!-- Match Score Badge -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 0 24px 0;">
+                                <tr>
+                                    <td style="text-align: center;">
+                                        <div style="display: inline-block; width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #06b6d4, #4f46e5); padding: 4px;">
+                                            <div style="width: 72px; height: 72px; border-radius: 50%; background-color: #1a1a2e; display: flex; align-items: center; justify-content: center; text-align: center; line-height: 72px;">
+                                                <span style="font-size: 24px; font-weight: bold; color: #06b6d4;">{{MATCH_SCORE}}%</span>
+                                            </div>
+                                        </div>
+                                        <p style="margin: 12px 0 0 0; font-size: 14px; color: #67e8f9; font-weight: 600;">AI Match Score</p>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <h2 style="margin: 0 0 8px 0; color: #ffffff; font-size: 24px; font-weight: 600; text-align: center;">Perfect Match Found! 🎯</h2>
+                            
+                            <p style="margin: 0 0 32px 0; font-size: 16px; line-height: 1.6; color: #d4d4d8; text-align: center;">
+                                We found a brief that matches your skills and experience
+                            </p>
+                            
+                            <!-- Brief Card -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 0 24px 0; background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(79, 70, 229, 0.1) 100%); border-radius: 12px; border: 1px solid rgba(6, 182, 212, 0.3);">
+                                <tr>
+                                    <td style="padding: 24px;">
+                                        <h3 style="margin: 0 0 12px 0; color: #ffffff; font-size: 20px; font-weight: 600;">{{BRIEF_TITLE}}</h3>
+                                        <p style="margin: 0 0 16px 0; color: #a1a1aa; font-size: 14px;">Posted by {{BRAND_NAME}}</p>
+                                        
+                                        <!-- Brief Details Grid -->
+                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                            <tr>
+                                                <td style="padding: 8px 0;">
+                                                    <span style="color: #67e8f9; font-size: 13px; font-weight: 600;">📹 Content Type</span><br>
+                                                    <span style="color: #ffffff; font-size: 14px;">Video Production</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 8px 0;">
+                                                    <span style="color: #67e8f9; font-size: 13px; font-weight: 600;">💰 Budget</span><br>
+                                                    <span style="color: #ffffff; font-size: 14px;">Competitive</span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 8px 0;">
+                                                    <span style="color: #67e8f9; font-size: 13px; font-weight: 600;">🛠️ Preferred Tools</span><br>
+                                                    <span style="color: #ffffff; font-size: 14px;">Adobe Premiere, After Effects</span>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Why Matched -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 0 24px 0; background-color: rgba(6, 182, 212, 0.1); border-left: 4px solid #06b6d4; border-radius: 4px;">
+                                <tr>
+                                    <td style="padding: 16px;">
+                                        <h4 style="margin: 0 0 8px 0; color: #67e8f9; font-size: 14px; font-weight: 600;">✨ Why this matches you:</h4>
+                                        <p style="margin: 0; font-size: 14px; color: #d4d4d8; line-height: 1.5;">
+                                            This brief aligns with your portfolio style, preferred tools, and expertise level. The brand is looking for exactly what you offer!
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- CTA Button -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 32px 0;">
+                                <tr>
+                                    <td style="border-radius: 8px; background: linear-gradient(135deg, #06b6d4 0%, #4f46e5 100%);">
+                                        <a href="{{BRIEF_LINK}}" class="button" style="display: inline-block; padding: 16px 48px; color: #ffffff; text-decoration: none; font-size: 16px; font-weight: 600; border-radius: 8px;">
+                                            View Brief & Apply
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- Info Box -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 24px 0 0 0; background-color: rgba(124, 58, 237, 0.1); border-left: 4px solid #7c3aed; border-radius: 4px;">
+                                <tr>
+                                    <td style="padding: 16px;">
+                                        <p style="margin: 0; font-size: 14px; color: #c4b5fd;">
+                                            ⚡ <strong>Act Fast:</strong> High-match briefs get filled quickly. Submit your proposal early to stand out from the competition.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 30px; background-color: #0f0f1a; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                            <p style="margin: 0 0 16px 0; font-size: 14px; color: #71717a; text-align: center;">
+                                Need help? Contact us at <a href="mailto:support@cinegen.ai" style="color: #06b6d4; text-decoration: none;">support@cinegen.ai</a>
+                            </p>
+                            
+                            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                <tr>
+                                    <td style="text-align: center; padding: 16px 0;">
+                                        <a href="#" style="color: #71717a; text-decoration: none; margin: 0 12px; font-size: 12px;">Twitter</a>
+                                        <a href="#" style="color: #71717a; text-decoration: none; margin: 0 12px; font-size: 12px;">Instagram</a>
+                                        <a href="#" style="color: #71717a; text-decoration: none; margin: 0 12px; font-size: 12px;">LinkedIn</a>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <p style="margin: 16px 0 0 0; font-size: 12px; color: #52525b; text-align: center; line-height: 1.6;">
+                                © 2024 CineGen AI. All rights reserved.<br>
+                                123 Creator Street, San Francisco, CA 94103<br>
+                                <a href="#" style="color: #52525b; text-decoration: underline;">Unsubscribe</a>
+                            </p>
+                        </td>
+                    </tr>
+                    
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
