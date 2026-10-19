@@ -922,3 +922,35 @@ npm run build
 - Set `NEXT_PUBLIC_BASE_URL` environment variable
 - Test complete flow with real email delivery
 
+
+---
+
+## Verification (Review Iteration 2)
+
+**Date:** January 2025  
+**Build Command:** `npm run build`  
+**Result:** ✅ Build succeeded with 0 errors, 0 warnings
+
+### Review Findings Fixed:
+
+1. ✅ **Overly broad demo detection** - Changed from `includes('demo')` to exact `endsWith('@cinegen.demo')`
+2. ✅ **Silent password hash sync failure** - Removed try-catch, now fails entire operation if table update fails
+3. ✅ **No explicit token expiry surface** - Added `useEffect` to check token on page load with loading/error states
+4. ✅ **Missing NEXT_PUBLIC_BASE_URL fallback warning** - Added production check that fails request if env var missing
+5. ✅ **Password validation discrepancy** - Documented in SETUP.md that reset requires stronger passwords than registration (8+ vs 6+ chars)
+
+### Files Modified:
+- `app/auth/forgot-password/page.tsx` - Fixed demo detection
+- `app/api/auth/forgot-password/route.ts` - Added production env check
+- `app/api/auth/reset-password/route.ts` - Made password hash sync mandatory
+- `app/auth/reset-password/page.tsx` - Added token validity check on page load
+- `SETUP.md` - Documented password requirement differences
+
+### Build Output:
+All routes compiled successfully including new auth routes:
+- ✓ /auth/forgot-password (2.5 kB)
+- ✓ /auth/reset-password (3.32 kB) 
+- ✓ /api/auth/forgot-password
+- ✓ /api/auth/reset-password
+
+TypeScript validation passed with no errors.

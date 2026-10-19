@@ -1,10 +1,11 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Film, Eye, EyeOff, Lock, CheckCircle, X } from 'lucide-react';
+import { Film, Eye, EyeOff, Lock, CheckCircle, X, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { createClient } from '@/lib/supabase';
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('');
@@ -13,7 +14,31 @@ export default function ResetPasswordPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [tokenError, setTokenError] = useState(false);
+  const [checkingToken, setCheckingToken] = useState(true);
   const router = useRouter();
+
+  // Check token validity on page load
+  useEffect(() => {
+    const checkToken = async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user }, error } = await supabase.auth.getUser();
+        
+        if (error || !user) {
+          setTokenError(true);
+          toast.error('Your reset link has expired or is invalid');
+        }
+      } catch (err) {
+        console.error('Token check error:', err);
+        setTokenError(true);
+      } finally {
+        setCheckingToken(false);
+      }
+    };
+
+    checkToken();
+  }, []);
 
   // Password validation helpers
   const hasMinLength = password.length >= 8;
@@ -71,6 +96,43 @@ export default function ResetPasswordPage() {
           </div>
           <h1 className="font-display font-bold text-3xl mb-2">Password reset!</h1>
           <p className="text-muted-foreground">Redirecting you to login...</p>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (checkingToken) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="text-center">
+          <div className="w-16 h-16 rounded-full border-4 border-violet-500/20 border-t-violet-500 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Verifying reset link...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (tokenError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center max-w-md"
+        >
+          <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-6">
+            <AlertCircle className="w-10 h-10 text-red-400" />
+          </div>
+          <h1 className="font-display font-bold text-2xl mb-2">Reset link expired</h1>
+          <p className="text-muted-foreground mb-6">
+            Your password reset link has expired or is invalid. Reset links are valid for 1 hour.
+          </p>
+          <Link
+            href="/auth/forgot-password"
+            className="inline-block px-6 py-3 bg-gradient-to-r from-violet-600 to-violet-500 text-white rounded-xl font-semibold hover:from-violet-500 hover:to-violet-400 transition-all shadow-lg shadow-violet-500/25"
+          >
+            Request a new link
+          </Link>
         </motion.div>
       </div>
     );

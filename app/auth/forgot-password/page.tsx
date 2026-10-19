@@ -17,8 +17,8 @@ export default function ForgotPasswordPage() {
       return;
     }
 
-    // Check if demo account
-    const isDemoAccount = email.toLowerCase().includes('@cinegen.demo') || email.toLowerCase().includes('demo');
+    // Check if demo account (exact domain match only)
+    const isDemoAccount = email.toLowerCase().endsWith('@cinegen.demo');
     if (isDemoAccount) {
       toast.error('Password reset not available for demo accounts. Demo password is always Demo@123');
       return;

@@ -25,6 +25,15 @@ export async function POST(req: NextRequest) {
     const supabase = createClient();
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
+    // Warn if NEXT_PUBLIC_BASE_URL is not set in production
+    if (!process.env.NEXT_PUBLIC_BASE_URL && process.env.NODE_ENV === 'production') {
+      console.error('CRITICAL: NEXT_PUBLIC_BASE_URL is not set in production. Reset links will point to localhost.');
+      return NextResponse.json(
+        { error: 'Server configuration error. Please contact support.' },
+        { status: 500 }
+      );
+    }
+
     // Send password reset email
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: `${baseUrl}/auth/reset-password`,

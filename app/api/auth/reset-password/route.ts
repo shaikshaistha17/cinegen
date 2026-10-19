@@ -50,16 +50,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Update password hash in users table
-    try {
-      const passwordHash = await hashPassword(password);
-      await supabase
-        .from('users')
-        .update({ password_hash: passwordHash, updated_at: new Date().toISOString() })
-        .eq('id', user.id);
-    } catch (error) {
-      console.error('Failed to update password hash in users table:', error);
-      // Continue - auth password is updated, table update is secondary
+    // Update password hash in users table (must succeed to stay in sync)
+    const passwordHash = await hashPassword(password);
+    const { error: tableError } = await supabase
+      .from('users')
+      .update({ password_hash: passwordHash, updated_at: new Date().toISOString() })
+      .eq('id', user.id);
+
+    if (tableError) {
+      console.error('Failed to update password hash in users table:', tableError);
+      // Critical: password out of sync. Return error so user can retry.
+      return NextResponse.json(
+        { error: 'Failed to complete password reset. Please try again.' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({

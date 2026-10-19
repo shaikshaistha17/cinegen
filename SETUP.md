@@ -209,6 +209,19 @@ For production, set this to your actual domain (e.g., `https://cinegen.com`).
 ### Demo Accounts
 Demo accounts (with `@cinegen.demo` emails) cannot use password reset. The system shows an error message: "Password reset not available for demo accounts. Demo password is always Demo@123"
 
+### Password Requirements
+
+**Note**: Password reset enforces stricter requirements than registration:
+
+- **Registration**: Requires minimum 6 characters (no complexity requirements)
+- **Password Reset**: Requires 8+ characters, 1 uppercase letter, and 1 number
+
+This is intentional to encourage users to upgrade to stronger passwords when resetting. If you want consistent validation:
+1. Update `app/register/page.tsx` to match reset requirements, OR
+2. Relax `app/auth/reset-password/page.tsx` and `app/api/auth/reset-password/route.ts` validation to match registration
+
+The current design prioritizes security by requiring stronger passwords during the security-sensitive reset flow.
+
 ## Troubleshooting
 
 ### Error: "relation does not exist"
