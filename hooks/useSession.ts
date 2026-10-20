@@ -27,7 +27,22 @@ export function useSession() {
   const supabase = createClient();
 
   useEffect(() => {
-    // Get initial session
+    // Check for localStorage session first (local mode)
+    const localSession = localStorage.getItem('cinegen_session');
+    if (localSession) {
+      try {
+        const sess = JSON.parse(localSession);
+        setSessionState(sess);
+        setCookie("cinegen_role", sess.role);
+        setLoading(false);
+        console.log('✅ Restored session from localStorage');
+        return;
+      } catch (e) {
+        console.error('Failed to parse local session:', e);
+      }
+    }
+    
+    // Get initial session from Supabase
     supabase.auth.getSession().then(({ data: { session: authSession } }: any) => {
       if (authSession) {
         convertAuthSessionToSession(authSession).then((sess) => {
@@ -129,14 +144,39 @@ export function useSession() {
   const login = useCallback(
     async (email: string, password: string): Promise<boolean> => {
       try {
+        // Check localStorage users first (local mode)
+        const localUsers = JSON.parse(localStorage.getItem('cinegen_users') || '[]');
+        const hasLocalUsers = localUsers.length > 0;
+        
         // Call our API endpoint which handles both demo and regular login
         const response = await fetch("/api/auth/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ email, password, localUsers: hasLocalUsers }),
         });
 
         if (!response.ok) {
+          // LOCAL MODE: Check localStorage
+          if (localUsers.length > 0) {
+            const user = localUsers.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
+            if (user) {
+              // Verify password (in real app, would use bcrypt.compare)
+              // For now, just check if user exists
+              const sess: Session = {
+                userId: user.id,
+                email: user.email,
+                role: user.role as UserRole,
+                name: user.name,
+                loginAt: new Date().toISOString(),
+              };
+              setSessionState(sess);
+              setCookie("cinegen_role", sess.role);
+              localStorage.setItem('cinegen_session', JSON.stringify(sess));
+              notifyAll();
+              console.log('✅ Logged in via localStorage');
+              return true;
+            }
+          }
           return false;
         }
 

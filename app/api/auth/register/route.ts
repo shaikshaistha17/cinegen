@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase';
 import { hashPassword } from '@/lib/auth-helpers';
 
+// Helper to check if Supabase is configured
+function isSupabaseConfigured(): boolean {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  if (!url) return false;
+  if (url.includes('placeholder')) return false;
+  if (!url.startsWith('https://')) return false;
+  if (!url.includes('supabase.co')) return false;
+  return true;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -29,10 +39,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const supabase = createClient();
-
     // Hash password
     const passwordHash = await hashPassword(password);
+    
+    // LOCAL MODE: If Supabase not configured, use localStorage fallback
+    if (!isSupabaseConfigured()) {
+      console.warn('⚠️ Registration in LOCAL mode (Supabase not configured)');
+      
+      // Generate user ID
+      const userId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Return user data for client-side localStorage storage
+      return NextResponse.json({
+        localMode: true,
+        user: {
+          id: userId,
+          email,
+          password_hash: passwordHash,
+          role,
+          name,
+          created_at: new Date().toISOString(),
+        },
+        message: 'Account created successfully (local mode)',
+      });
+    }
+
+    const supabase = createClient();
 
     // Sign up with Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({

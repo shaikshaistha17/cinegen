@@ -63,6 +63,25 @@ export default function RegisterPage() {
         throw new Error(data.error || 'Registration failed');
       }
 
+      // LOCAL MODE: Store user in localStorage
+      if (data.localMode && data.user) {
+        const users = JSON.parse(localStorage.getItem('cinegen_users') || '[]');
+        users.push(data.user);
+        localStorage.setItem('cinegen_users', JSON.stringify(users));
+        
+        // Create session
+        const session = {
+          userId: data.user.id,
+          email: data.user.email,
+          role: data.user.role,
+          name: data.user.name,
+          loginAt: new Date().toISOString(),
+        };
+        localStorage.setItem('cinegen_session', JSON.stringify(session));
+        
+        console.log('✅ Account created in local mode');
+      }
+
       if (data.message && data.message.includes('email')) {
         setNeedsVerification(true);
         toast.info('Check your email for verification code');

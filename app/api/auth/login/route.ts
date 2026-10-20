@@ -38,10 +38,21 @@ const DEMO_ACCOUNTS = [
 
 const DEMO_PASSWORD = 'Demo@123';
 
+// Helper to check if Supabase is configured
+function isSupabaseConfigured(): boolean {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  if (!url) return false;
+  if (url.includes('placeholder')) return false;
+  if (!url.startsWith('https://')) return false;
+  if (!url.includes('supabase.co')) return false;
+  return true;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { email, password } = body;
+    const localUsers = body.localUsers === true;
 
     if (!email || !password) {
       return NextResponse.json(
@@ -52,6 +63,15 @@ export async function POST(req: NextRequest) {
 
     const emailLower = email.toLowerCase();
     const isDemoAccount = DEMO_ACCOUNTS.includes(emailLower);
+    
+    // LOCAL MODE: Check localStorage users first if Supabase not configured
+    if (!isSupabaseConfigured() && localUsers && !isDemoAccount) {
+      console.warn('⚠️ Login in LOCAL mode (Supabase not configured)');
+      return NextResponse.json({
+        localMode: true,
+        checkLocalStorage: true,
+      });
+    }
 
     // Handle demo accounts
     if (isDemoAccount && password === DEMO_PASSWORD) {
