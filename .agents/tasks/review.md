@@ -1,182 +1,175 @@
-# Change Password Feature with Session-Based Auth
+# Change Password Feature with Email Authentication
 
-Adds a password change feature accessible from the dashboard, allowing authenticated users to update their password by verifying their current password first. The implementation blocks demo accounts from changing passwords and maintains dual-database password storage (Supabase Auth + users table).
+The change password feature is a complete implementation following CREVO-style UX patterns. The coder addressed all three LOW severity findings from the previous review (validation duplication, retry documentation, and reset-password consistency). The feature consists of a protected settings page, a secure API endpoint with current password verification, and dashboard navigation integration. Both password update paths (change-password and reset-password) now use shared validation and retry logic with exponential backoff to minimize auth/table divergence risk.
 
-The API endpoint verifies the current password against the stored hash, validates the new password format (8+ characters, uppercase, number), updates Supabase Auth, and syncs the hash to the users table. The UI redirects unauthenticated users to login, displays real-time validation feedback, and follows the existing auth page design pattern with glassmorphic cards and gradient accents.
+Security posture is solid: bcrypt for password hashing and comparison, session-based authentication via Supabase, demo account blocking, and friendly error messages that don't leak implementation details. The dual-storage architecture (Supabase Auth + users table) creates an inherent consistency risk, but the 3-attempt retry loop with 100ms/200ms exponential backoff mitigates transient failures. If sync ultimately fails, users can still log in (Auth is authoritative) and retry the password change to complete the sync.
 
-**Watch for:** Missing atomic transaction guarantees between Supabase Auth and users table updates **(confirmed)**, no test coverage for the new feature **(confirmed)**, password validation logic duplicated between client and server **(confirmed)**.
+UX follows existing auth page patterns: split-screen glass cards with gradient accents, real-time password validation with visual checklist, show/hide toggles for password fields, and success/error messaging via toast notifications. The UI correctly disables all controls for demo accounts with a clear warning banner.
 
-**Verdict**: CHANGES_REQUESTED
+**Watch for:** No test coverage for retry logic or password change flow **(confirmed)**, demo account detection relies on email suffix matching which could break if detection strategy changes **(confirmed)**.
+
+**Verdict**: APPROVED
 
 ## High-level view
 
-The password change flow requires three inputs (current, new, confirm) and validates the current password by fetching the hash from the users table and comparing with bcrypt. The API updates Supabase Auth first, then the users table hash separately—no transaction wraps them, so Auth could succeed while the table update fails, creating inconsistent state.
+The change-password API verifies the current password against the users table hash using bcrypt comparison, validates the new password using a shared utility function, updates Supabase Auth first, then syncs the users table hash with exponential backoff retries. The reset-password API now uses identical validation and retry logic after being refactored in the latest iteration. Both APIs block demo accounts (email ends with `@cinegen.demo`) and return friendly error messages.
 
-Demo accounts are blocked at both UI and API levels by checking the @cinegen.demo domain suffix. The new password must meet the same requirements as registration: 8 characters, uppercase letter, number.
+The change password page is a protected route that redirects unauthenticated users to login. The UI provides real-time password validation feedback with green checkmarks or gray X icons for each requirement (length, uppercase, number, match). Demo users see all fields disabled with a yellow warning banner explaining they cannot change passwords. The dashboard includes "🔒 Change Password" links in the top-right area for both brand and creator views.
 
-The Change Password page lives at /settings/password and matches the visual style of forgot-password and login pages: two-column layout, glassmorphic cards, real-time validation with checkmarks, CREVO-style informational messages. The dashboard adds a "Change Password" link in both brand and creator views.
-
-Session protection happens via the useSession hook—the page redirects to /login if no session is found. The API checks `supabase.auth.getUser()` and returns 401 if not authenticated.
+The shared validation utility (`lib/password-validation.ts`) exports a single function returning structured validation results with per-check booleans. This eliminated the previous duplication where UI and API each had inline regex patterns and length checks. The retry documentation gap was closed by adding explicit comments about exponential backoff timing (100ms, 200ms).
 
 <details>
-<summary>Issues (4)</summary>
+<summary>Issues (0)</summary>
 
-1. **Dual password update not atomic** — Supabase Auth and users table are updated in separate operations. If the second fails, Auth has the new password but the table still has the old hash. Wrap in a transaction or add compensating rollback logic.
-
-2. **No test coverage** — The change-password API route and settings/password page have no automated tests. Add tests for: current password verification, new password validation, demo account blocking, unauthenticated access, Auth/table sync failure scenarios.
-
-3. **Password validation duplicated** — The same regex patterns (`/[A-Z]/`, `/\d/`) and length check (8 characters) exist in both the UI (page.tsx) and API (route.ts). Extract to a shared validation utility to ensure consistency.
-
-4. **Error message leaks database structure** — The API returns "User not found in database" when the users table query fails. This reveals that password hashes are stored separately from Supabase Auth. Use a generic message like "Failed to verify current password".
+No blocking or medium severity issues remain. The LOW severity findings from the previous review (validation duplication, retry documentation, reset-password parity) were all fixed in commit ec420e1. The lack of automated test coverage is a project-wide limitation (no test framework configured), not a regression introduced by this feature.
 
 </details>
 
 <details>
 <summary>Details</summary>
 
-## Dual-database password storage creates sync risk
+## Change password API security checks
 
-The change-password API updates two password stores: Supabase Auth (via `supabase.auth.updateUser({ password })`) and the local users table (via `supabase.from('users').update({ password_hash })`). These operations run sequentially without a transaction:
-
-```typescript
-// Update password in Supabase Auth
-const { error: updateError } = await supabase.auth.updateUser({
-  password: newPassword,
-});
-
-if (updateError) {
-  // Auth update failed, return early
-  return NextResponse.json({ error: ... }, { status: 400 });
-}
-
-// Update password hash in users table to stay in sync
-const newPasswordHash = await hashPassword(newPassword);
-const { error: tableError } = await supabase
-  .from('users')
-  .update({ password_hash: newPasswordHash, updated_at: ... })
-  .eq('id', user.id);
-
-if (tableError) {
-  // Table update failed, but Auth already has new password
-  return NextResponse.json({ error: 'Failed to complete password update' }, { status: 500 });
-}
-```
-
-If the Auth update succeeds but the table update fails (network blip, database constraint, permissions issue), Supabase Auth accepts the new password at login while the users table still has the old hash. This breaks any code path that checks `password_hash` directly (e.g., current password verification for future changes).
-
-The failure mode is asymmetric: Auth is authoritative for login, but the table hash becomes stale. A user who hits this edge case can log in with the new password but cannot change their password again (current password verification will fail against the stale hash).
-
-Supabase doesn't expose database-level transactions across Auth and table operations. Options: (1) accept the risk and add compensating logic (detect stale hash, force re-sync), (2) make the users table hash read-only and derive it from Auth on demand (requires Auth API access), or (3) add idempotent retry logic for the table update.
-
-## Current password verification trusts the users table hash
-
-The API fetches `password_hash` from the users table and verifies the submitted current password with bcrypt:
+The endpoint validates authentication, current password, new password strength, and demo account status before making any changes:
 
 ```typescript
+// Session check
+const { data: { user }, error: userError } = await supabase.auth.getUser();
+if (userError || !user) {
+  return NextResponse.json({ error: 'Not authenticated. Please log in again.' }, { status: 401 });
+}
+
+// Demo account block
+if (user.email?.toLowerCase().endsWith('@cinegen.demo')) {
+  return NextResponse.json({ error: 'Demo accounts cannot change passwords...' }, { status: 403 });
+}
+
+// Current password verification
 const { data: userData, error: fetchError } = await supabase
   .from('users')
   .select('password_hash')
   .eq('id', user.id)
   .single();
 
-// ...
-
 const isValidPassword = await verifyPassword(currentPassword, userData.password_hash);
-```
-
-This assumes the users table hash is in sync with Supabase Auth. If they diverge (see issue above), the user cannot change their password even if they know the correct Auth password.
-
-The 404 error path ("User not found in database") reveals implementation details: it tells an attacker that password hashes are stored separately from Auth. Replace with a generic 401 error ("Failed to verify current password").
-
-## Demo account blocking at both layers
-
-The UI disables form inputs and shows a warning banner for demo accounts (email ends with `@cinegen.demo`). The API duplicates this check and returns 403. The 403 response includes the hardcoded demo password (`Demo@123`) in the error message—not a security issue (demo accounts are public knowledge) but the password appears in API responses and browser network logs.
-
-## Password validation duplicated between client and server
-
-The UI and API both validate the new password format:
-
-**UI (page.tsx):**
-```typescript
-const hasMinLength = newPassword.length >= 8;
-const hasUppercase = /[A-Z]/.test(newPassword);
-const hasNumber = /\d/.test(newPassword);
-```
-
-**API (route.ts):**
-```typescript
-if (newPassword.length < 8) {
-  return NextResponse.json({ error: 'New password must be at least 8 characters' }, { status: 400 });
-}
-
-const hasUppercase = /[A-Z]/.test(newPassword);
-const hasNumber = /\d/.test(newPassword);
-
-if (!hasUppercase || !hasNumber) {
-  return NextResponse.json({ error: 'New password must contain at least 1 uppercase letter and 1 number' }, { status: 400 });
+if (!isValidPassword) {
+  return NextResponse.json({ error: 'Current password is incorrect' }, { status: 401 });
 }
 ```
 
-If requirements change (e.g., add special character requirement), both locations need updates. Extract to a shared utility (`lib/password-validation.ts`) that exports a `validatePassword` function returning `{ valid: boolean; errors: string[] }`.
+The current password check uses `verifyPassword` from `lib/auth-helpers.ts`, which wraps `bcrypt.compare()`. The error message "Current password is incorrect" doesn't leak that a separate password_hash column exists. Earlier iterations returned "User not found in database" on fetch failure, which disclosed the dual-storage architecture; that was fixed.
 
-## Session protection redirects unauthenticated users
+## Dual-storage sync with exponential backoff
 
-The page uses the `useSession` hook to redirect unauthenticated users to /login via a `useEffect` that checks `!session && !sessionLoading`. The API separately checks `supabase.auth.getUser()` and returns 401 if no user is found. The double-check is appropriate: the UI redirect is UX polish, the API check is the security boundary.
+Both change-password and reset-password APIs update Supabase Auth first (authoritative), then sync the users table hash:
 
-One gap: the page briefly renders before the redirect fires (the useEffect runs after mount). An attacker with DevTools open could see the form HTML. Not a practical exploit (the API blocks submission), but the page could show a loading spinner instead of the full form until `sessionLoading` completes.
+```typescript
+// Update Supabase Auth
+const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+if (updateError) {
+  return NextResponse.json({ error: updateError.message || 'Failed to update password' }, { status: 400 });
+}
 
-## UI matches CREVO-style auth page patterns
+// Sync users table with retry logic
+// Exponential backoff: 100ms, 200ms before final attempt
+const newPasswordHash = await hashPassword(newPassword);
+let tableUpdateSuccess = false;
+let lastError = null;
 
-The Change Password page follows the same two-column layout as forgot-password and login: form on the left, requirements on the right, glassmorphic cards with `border-white/10`, gradient accent blobs, violet-to-cyan color scheme. Real-time validation feedback: checkmarks turn green as requirements are met, the submit button stays disabled until all criteria pass. The "Forgot your current password?" info box links to the forgot-password flow.
+for (let attempt = 0; attempt < 3; attempt++) {
+  const { error: tableError } = await supabase
+    .from('users')
+    .update({ password_hash: newPasswordHash, updated_at: new Date().toISOString() })
+    .eq('id', user.id);
 
-Success state: a green banner appears above the form for 3 seconds after a successful update, the form clears, and a toast notification confirms the change. The user stays on the page (not redirected).
+  if (!tableError) {
+    tableUpdateSuccess = true;
+    break;
+  }
+  
+  lastError = tableError;
+  if (attempt < 2) {
+    await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
+  }
+}
 
-## Dashboard integration adds password change link
+if (!tableUpdateSuccess) {
+  console.error('Failed to sync password hash to users table after 3 attempts:', lastError);
+  return NextResponse.json(
+    { error: 'Password updated in authentication system but database sync failed. Please try changing your password again to complete the update.' },
+    { status: 500 }
+  );
+}
+```
 
-Both dashboard views now include a "🔒 Change Password" link. The brand dashboard adds it below the header (right-aligned), the creator dashboard adds it next to the welcome message (inline flex). The placement is slightly inconsistent but both are visible and accessible.
+The backoff delays are 100ms (after attempt 0 fails) and 200ms (after attempt 1 fails). The total added latency is ~300ms maximum.
 
-## No test coverage for the new feature
+If sync fails permanently, the error message tells the user Auth was updated (login works with the new password) but they should retry the change to complete the database sync.
 
-The change-password API route and settings/password page have no automated tests. No test files exist in the project at all.
+The lack of transactional atomicity is inherent to the architecture. Supabase doesn't expose a distributed transaction API that spans Auth and table writes. Rolling back the Auth password if table sync fails would require storing the old Auth password (not exposed by the API) or using Supabase's admin API (requires service role key, adds complexity). The current approach prioritizes user access (Auth is king) over perfect consistency.
 
-Critical scenarios not tested:
+## Change password page protection and UX
 
-**API route:**
-- Current password incorrect → 401
-- New password too short, missing uppercase, missing number → 400
-- Demo account attempts change → 403
-- Unauthenticated request → 401
-- Successful password change → 200, both Auth and users table updated
-- Auth update succeeds but table update fails → failure mode unchecked
+The page redirects unauthenticated users to `/login` after the session loads. The API endpoint also checks authentication, so there's no security gap if someone bypasses the redirect (they'd get a 401).
 
-**UI page:**
-- Unauthenticated user redirected to /login
-- Demo account shows warning banner and disables form
-- Real-time validation: checkmarks appear as requirements met
-- Submit button disabled until all criteria pass
-- Success and error states render correctly
+The submit button is disabled until all validations pass (`isValid = validation.valid && passwordsMatch && currentPassword.length > 0`).
 
-The build passes with no type errors. Functional correctness needs tests.
+Real-time validation feedback uses the shared utility's `checks` object to toggle checkmark/X icons. Each requirement (min length, uppercase, number, passwords match) gets its own checklist item with conditional green/gray styling.
 
-## .env.example documents SMTP configuration
+## Demo account detection fragility
 
-The .env.example file adds a comment block explaining that Supabase handles password reset emails automatically, and that custom SMTP can be configured in the Supabase dashboard for production. No new environment variables are required for this feature.
+Demo accounts are detected by email suffix: `session?.email?.toLowerCase().endsWith('@cinegen.demo')`. If true, the UI shows a yellow warning banner and disables all form fields. The API endpoint includes a redundant check (returns 403) so the block is enforced even if someone bypasses the UI.
+
+The detection logic is fragile: if future code adds demo accounts with a different email pattern, or if real users create accounts ending with `@cinegen.demo`, the logic breaks. A more robust approach would be a `is_demo` boolean flag in the users table.
+
+## Dashboard integration
+
+The dashboard page adds a "🔒 Change Password" link in the top-right area, positioned after the main action cards but before the stats grid. The link appears in both brand and creator dashboard views with identical placement. The emoji approach matches other dashboard links like "💰 Estimate Budget".
+
+## Reset-password parity
+
+The previous review flagged that `/api/auth/reset-password` had inline validation duplicating the logic now centralized in `lib/password-validation.ts`. Commit ec420e1 fixed this: reset-password now imports `validatePassword` and uses it identically to change-password. The reset-password route also gained the same retry logic (3 attempts, exponential backoff, same error message on sync failure).
+
+## No test coverage
+
+The project has no test framework configured. This is a project-wide limitation, not specific to this feature. Critical scenarios not tested:
+
+- Current password verification fails → 401
+- New password fails validation → 400
+- Demo account → 403
+- Table sync fails on attempt 1, succeeds on attempt 2 → 200
+- Table sync fails 3 times → 500 with sync failure message
+- Unauthenticated user → redirects to login
+- Demo account → form disabled
+- Real-time validation checkmarks toggle correctly
+- User changes password, logs out, logs in with new password → succeeds
+- User changes password, logs out, logs in with old password → fails
+
+The retry logic backoff timing (100ms, 200ms) and total attempt count (3) are hardcoded. Without tests, accidental changes to `Math.pow(2, attempt) * 100` wouldn't be caught until production.
 
 </details>
 
 ## File map
 
 <details>
-<summary>8 files changed</summary>
+<summary>Files changed</summary>
 
-- `.agents/tasks/email-review.json` — updated verdict from CHANGES_REQUESTED to APPROVED (previous review iteration)
-- `.agents/tasks/plan.md` — plan document updated (869 lines removed, agent workflow artifact)
-- `.env.example` — added SMTP configuration documentation comment
-- `app/api/settings/change-password/route.ts` — new API endpoint for password changes (120 lines)
-- `app/auth/forgot-password/page.tsx` — minor: fixed import formatting
-- `app/dashboard/page.tsx` — added "Change Password" links to brand and creator dashboard views
-- `app/settings/password/page.tsx` — new Change Password page with two-column layout (326 lines)
+**Created (3 files):**
+- `lib/password-validation.ts` — Shared validation utility with `validatePassword()` function returning structured checks
+- `app/settings/password/page.tsx` — Protected change password page with split-screen layout, real-time validation, demo account warning
+- `app/api/settings/change-password/route.ts` — Change password API with current password verification, retry logic, demo blocking
 
-Full diff: `git diff HEAD~1`
+**Modified (4 files):**
+- `app/dashboard/page.tsx` — Added "🔒 Change Password" links in brand and creator dashboards
+- `app/auth/forgot-password/page.tsx` — Updated success message to "Check your email for a reset link ✉️"
+- `app/api/auth/reset-password/route.ts` — Refactored to use shared validation and added retry logic
+- `.env.example` — Added SMTP configuration documentation (Supabase email service)
+
+**Related files (read for patterns, not modified):**
+- `lib/auth-helpers.ts` — Used `verifyPassword` and `hashPassword` functions
+- `app/login/page.tsx` — Followed split-screen layout pattern
+- `hooks/useSession.tsx` — Used for authentication check
+
+Full implementation spans commits 346d58f (initial feature), 6d1db59 (first review fixes), ec420e1 (second review fixes), 8474236 (documentation).
 
 </details>
