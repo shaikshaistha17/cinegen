@@ -39,7 +39,7 @@ export default function ForgotPasswordPage() {
       }
 
       setSent(true);
-      toast.success('Check your email for the reset link');
+      toast.success('Check your email for a reset link ✉️');
     } catch (err: any) {
       toast.error(err.message || 'Failed to send reset email. Please try again.');
     } finally {

@@ -136,6 +136,16 @@ function BrandDashboard() {
         </div>
       </div>
 
+      {/* Account Settings Link */}
+      <div className="flex justify-end">
+        <Link 
+          href="/settings/password"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          🔒 Change Password
+        </Link>
+      </div>
+
       {/* Stats with count-up animations and gradient backgrounds */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard stat={stats[0]} index={0} />
@@ -269,9 +279,17 @@ function CreatorDashboard() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="font-display font-bold text-3xl mb-1">Creator Dashboard</h1>
-        <p className="text-muted-foreground">Welcome back, {session?.name}</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-display font-bold text-3xl mb-1">Creator Dashboard</h1>
+          <p className="text-muted-foreground">Welcome back, {session?.name}</p>
+        </div>
+        <Link 
+          href="/settings/password"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          🔒 Change Password
+        </Link>
       </div>
 
       {/* Stats */}

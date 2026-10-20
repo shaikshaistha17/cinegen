@@ -64,7 +64,7 @@ export default function LoginPage() {
       toast.success("Welcome to CineGen!");
       window.location.href = "/dashboard";
     } else {
-      setError("Invalid credentials. Use the demo credentials below.");
+      setError("Invalid email or password. Use the demo credentials below or sign up for an account.");
     }
     setLoading(false);
   };
