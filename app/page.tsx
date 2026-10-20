@@ -8,7 +8,6 @@ import {
   ArrowRight, Sparkles, Play, Search, FileText, Handshake,
   Star, CheckCircle2, Zap, TrendingUp, Users, Briefcase, Film, X, Clock
 } from "lucide-react";
-import Hero3DCreatorCard from "@/components/hero/Hero3DCreatorCard";
 import HeroFloatingBadge from "@/components/hero/HeroFloatingBadge";
 import HeroMeshGradient from "@/components/hero/HeroMeshGradient";
 import HeroAnimatedLines from "@/components/hero/HeroAnimatedLines";
@@ -49,12 +48,11 @@ const HOW_IT_WORKS = [
 ];
 
 const FEATURED_CREATORS = [
-  { name: "Shaistha Shaik", handle: "@aryanvisuals", headline: "AI Filmmaker & Cinematic Visual Storyteller", badge: "Studio", rate: 95, rating: 4.9, tools: ["Runway", "Kling", "Midjourney"], avatar: "https://picsum.photos/seed/aryan/200/200", cover: "https://picsum.photos/seed/aryancover/800/300", id: "creator-001", availability: "Available" },
-  { name: "Deekshitha Sanivarapu", handle: "@marcusaivfx", headline: "AI VFX Director | Epic Sci-Fi & Fantasy Visuals", badge: "Studio", rate: 150, rating: 5.0, tools: ["Sora", "Runway", "ComfyUI"], avatar: "https://picsum.photos/seed/marcus/200/200", cover: "https://picsum.photos/seed/marcuscover/800/300", id: "creator-005", availability: "Limited" },
-  { name: "Leela Jammula", handle: "@lenamusicals", headline: "Music Video Director | Ethereal AI Aesthetics", badge: "Studio", rate: 130, rating: 4.9, tools: ["Higgsfield", "Runway", "Kling"], avatar: "https://picsum.photos/seed/lena/200/200", cover: "https://picsum.photos/seed/lenacover/800/300", id: "creator-008", availability: "Available" },
-  { name: "Teja Angirekula", handle: "@aishacreatives", headline: "AI Brand Storyteller | Purpose-Driven Campaigns", badge: "Studio", rate: 85, rating: 4.9, tools: ["Veo", "Runway", "ElevenLabs"], avatar: "https://picsum.photos/seed/aisha/200/200", cover: "https://picsum.photos/seed/aishacover/800/300", id: "creator-012", availability: "Available" },
-  { name: "Tanuja Gandla", handle: "@zarafashionai", headline: "AI Fashion Filmmaker | High-Fashion Campaigns", badge: "Verified", rate: 120, rating: 4.85, tools: ["Midjourney", "Flux", "Adobe Firefly"], avatar: "https://picsum.photos/seed/zara/200/200", cover: "https://picsum.photos/seed/zaracover/800/300", id: "creator-004", availability: "Available" },
-  { name: "Gowtham Reddy", handle: "@meeravisualai", headline: "AI Visual Artist | Experimental & Art-House Films", badge: "Studio", rate: 100, rating: 5.0, tools: ["Stable Diffusion", "ComfyUI", "Runway"], avatar: "https://picsum.photos/seed/meera/200/200", cover: "https://picsum.photos/seed/meeracover/800/300", id: "creator-015", availability: "Limited" },
+  { name: "Shaistha Shaik", handle: "@shaistha", headline: "AI Filmmaker & Cinematic Visual Storyteller", badge: "Studio", rate: 95, rating: 4.9, tools: ["Runway", "Kling", "Midjourney"], avatar: "https://picsum.photos/seed/shaistha/200/200", cover: "https://picsum.photos/seed/shaisthacover/800/300", id: "creator-001", availability: "Available" },
+  { name: "Charitha Javangula", handle: "@charitha", headline: "AI VFX Director | Epic Sci-Fi & Fantasy Visuals", badge: "Studio", rate: 150, rating: 5.0, tools: ["Sora", "Runway", "ComfyUI"], avatar: "https://picsum.photos/seed/charitha/200/200", cover: "https://picsum.photos/seed/charithacover/800/300", id: "creator-002", availability: "Available" },
+  { name: "Deekshitha Sanivarapu", handle: "@deekshitha", headline: "Music Video Director | Ethereal AI Aesthetics", badge: "Studio", rate: 130, rating: 4.9, tools: ["Higgsfield", "Runway", "Kling"], avatar: "https://picsum.photos/seed/deekshitha/200/200", cover: "https://picsum.photos/seed/deekshithacover/800/300", id: "creator-003", availability: "Available" },
+  { name: "Tanuja Gandla", handle: "@tanuja", headline: "AI Brand Storyteller | Purpose-Driven Campaigns", badge: "Verified", rate: 85, rating: 4.9, tools: ["Veo", "Runway", "ElevenLabs"], avatar: "https://picsum.photos/seed/tanuja/200/200", cover: "https://picsum.photos/seed/tanujacover/800/300", id: "creator-004", availability: "Available" },
+  { name: "Sraddha Tadivaka", handle: "@sraddha", headline: "AI Fashion Filmmaker | High-Fashion Campaigns", badge: "Verified", rate: 120, rating: 4.85, tools: ["Midjourney", "Flux", "Adobe Firefly"], avatar: "https://picsum.photos/seed/sraddha/200/200", cover: "https://picsum.photos/seed/sraddhacover/800/300", id: "creator-005", availability: "Available" },
 ];
 
 const BADGE_STYLES: Record<string, string> = {
@@ -228,32 +226,10 @@ function HowItWorksCard({ step, index }: { step: typeof HOW_IT_WORKS[0]; index: 
 }
 
 export default function HomePage() {
-  const [bannerDismissed, setBannerDismissed] = useState(false);
   const prefersReducedMotion = useReducedMotion();
 
   return (
     <div className="min-h-screen">
-
-      {/* Judge Welcome Banner */}
-      {!bannerDismissed && (
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-violet-600/90 to-cyan-600/90 text-white px-4 py-2.5 text-center text-sm font-medium relative z-50"
-        >
-          <span>🎯 Hackathon Demo — </span>
-          <Link href="/login" className="underline underline-offset-2 hover:no-underline font-semibold">
-            Click here for instant 1-click access
-          </Link>
-          <span> · Brand & Creator accounts ready · No signup needed</span>
-          <button
-            onClick={() => setBannerDismissed(true)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-white/20 rounded transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </motion.div>
-      )}
 
       {/* Hero */}
       <section className="relative overflow-hidden pt-20 sm:pt-24 lg:pt-32 pb-24 sm:pb-32 lg:pb-40 min-h-[80vh] sm:min-h-[85vh] lg:min-h-[90vh] flex items-center">
@@ -302,10 +278,10 @@ export default function HomePage() {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1, duration: 0.6 }}
-                className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl leading-[1.1] mb-6 sm:mb-8 max-w-4xl mx-auto sm:mx-0 tracking-tight">
-                <span className="font-semibold">Hire the world&apos;s best</span>
+                className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl leading-[1.1] mb-6 sm:mb-8 max-w-4xl mx-auto sm:mx-0 tracking-tight font-semibold">
+                <span>Hire the world&apos;s best</span>
                 <br className="hidden sm:block" />
-                <span className="gradient-text-enhanced font-extrabold italic"> AI creators</span>
+                <span className="gradient-text-enhanced font-extrabold italic tracking-tight"> AI creators</span>
                 <br className="hidden sm:block" />
                 <span className="font-light">for your brand</span>
               </motion.h1>
@@ -360,102 +336,87 @@ export default function HomePage() {
               </motion.div>
             </div>
 
-            {/* Right: 3D Creator Cards (spans 5 columns on desktop) */}
-            <div className="lg:col-span-5 relative h-[500px] hidden lg:block">
-              {/* Card 1: Top-left, rotated */}
-              <div className="absolute top-0 left-0 z-20">
-                <Hero3DCreatorCard 
-                  creator={{
-                    name: "Shaistha Shaik",
-                    avatar: "https://picsum.photos/seed/aryan/200/200",
-                    specialty: "AI Filmmaker",
-                    tools: ["Runway", "Kling", "Midjourney"]
-                  }}
-                  rotation={{ y: -12, z: 3 }}
-                  parallaxMultiplier={0.3}
-                />
-              </div>
-              
-              {/* Card 2: Center-right, rotated opposite */}
-              <div className="absolute top-32 right-0 z-30">
-                <Hero3DCreatorCard 
-                  creator={{
-                    name: "Marcus Chen",
-                    avatar: "https://picsum.photos/seed/marcus/200/200",
-                    specialty: "AI VFX Director",
-                    tools: ["Sora", "Runway"]
-                  }}
-                  rotation={{ y: 8, z: -2 }}
-                  parallaxMultiplier={0.5}
-                />
-              </div>
-              
-              {/* Card 3: Bottom-left, subtle rotation */}
-              <div className="absolute bottom-0 left-12 z-10">
-                <Hero3DCreatorCard 
-                  creator={{
-                    name: "Lena Volkov",
-                    avatar: "https://picsum.photos/seed/lena/200/200",
-                    specialty: "Music Video Director",
-                    tools: ["Higgsfield", "Runway", "Kling"]
-                  }}
-                  rotation={{ y: -5, z: 1 }}
-                  parallaxMultiplier={0.2}
-                />
-              </div>
-              
-              {/* Floating badges scattered around cards */}
-              <div className="absolute top-16 right-20">
-                <HeroFloatingBadge icon="✓" text="Verified" color="violet" delay={0.5} />
-              </div>
-              <div className="absolute bottom-24 right-8">
-                <HeroFloatingBadge icon="★" text="Top Rated" color="amber" delay={1.2} />
-              </div>
-              <div className="absolute top-48 left-32">
-                <HeroFloatingBadge icon="🎬" text="Studio Pro" color="cyan" delay={0.8} />
-              </div>
+            {/* Right: Single Large Hero Card (spans 5 columns on desktop) */}
+            <div className="lg:col-span-5 relative hidden lg:flex items-center justify-center">
+              <motion.div
+                className="relative w-full max-w-lg mx-auto z-20"
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                whileHover={{ scale: 1.02 }}
+                style={{ 
+                  perspective: '1000px',
+                  transform: 'rotateY(-8deg) rotateX(4deg)'
+                }}
+              >
+                <div className="relative rounded-3xl border-2 border-transparent bg-gradient-to-br from-violet-600/20 via-cyan-600/10 to-violet-600/20 p-[2px] shadow-2xl shadow-violet-500/30">
+                  <div className="glass rounded-3xl p-8 backdrop-blur-xl">
+                    {/* Avatar section */}
+                    <div className="flex items-start gap-4 mb-6">
+                      <img
+                        src="https://picsum.photos/seed/shaistha/200/200"
+                        alt="Shaistha Shaik"
+                        className="w-20 h-20 rounded-2xl border-2 border-violet-400/40 object-cover shadow-xl"
+                      />
+                      <div className="flex-1">
+                        <h3 className="font-display text-2xl font-bold text-white mb-1">
+                          Shaistha Shaik
+                        </h3>
+                        <p className="text-violet-300/90 text-sm mb-2">AI Filmmaker</p>
+                        <div className="flex items-center gap-3 text-xs">
+                          <span className="flex items-center gap-1 text-amber-400 font-semibold">
+                            <Star className="w-3.5 h-3.5 fill-amber-400" />
+                            4.9
+                          </span>
+                          <span className="text-muted-foreground">28 Projects</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Specialty/bio */}
+                    <p className="text-sm text-muted-foreground/90 mb-4 leading-relaxed">
+                      Cinematic visual storyteller crafting epic brand narratives with cutting-edge AI tools.
+                    </p>
+
+                    {/* Tool badges */}
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {["Runway", "Kling", "Midjourney"].map((tool) => (
+                        <span
+                          key={tool}
+                          className="text-xs px-3 py-1.5 rounded-lg bg-violet-500/20 text-violet-200 border border-violet-400/30 font-medium"
+                        >
+                          {tool}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* CTA */}
+                    <Link
+                      href="/creators/creator-001"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-cyan-600 text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-all shadow-lg w-full justify-center"
+                    >
+                      View Profile <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Small floating badges near the card */}
+                <div className="absolute -top-3 -right-3">
+                  <HeroFloatingBadge icon="✓" text="Verified" color="violet" delay={0.5} />
+                </div>
+                <div className="absolute -bottom-3 -left-3">
+                  <HeroFloatingBadge icon="★" text="Top Rated" color="amber" delay={1} />
+                </div>
+              </motion.div>
             </div>
 
           </div>
         </div>
 
-        {/* Floating decorative elements - absolute positioned */}
+        {/* Floating decorative elements - minimal and clean */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden hidden lg:block" aria-hidden="true">
-          {/* Tool logo badges - subtle, small */}
-          <motion.div 
-            className="absolute top-24 left-[15%] opacity-20"
-            animate={prefersReducedMotion ? {} : { y: [0, -15, 0] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}>
-            <div className="w-12 h-12 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center">
-              <img src="/logos/runway.svg" alt="" className="w-6 h-6 opacity-60" />
-            </div>
-          </motion.div>
-          
-          <motion.div 
-            className="absolute bottom-32 right-[20%] opacity-20"
-            animate={prefersReducedMotion ? {} : { y: [0, -12, 0] }}
-            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}>
-            <div className="w-12 h-12 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10 flex items-center justify-center">
-              <img src="/logos/midjourney.svg" alt="" className="w-6 h-6 opacity-60" />
-            </div>
-          </motion.div>
-          
-          {/* Decorative geometric shapes */}
-          <motion.div
-            className="absolute top-40 right-[10%] w-24 h-24 border-2 border-violet-500/10 rounded-full"
-            animate={prefersReducedMotion ? {} : { rotate: 360 }}
-            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          />
-          
-          <motion.div
-            className="absolute bottom-40 left-[8%] w-16 h-16 border-2 border-cyan-500/10 rounded-lg"
-            animate={prefersReducedMotion ? {} : { rotate: -360 }}
-            transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          />
-          
-          {/* Subtle gradient orbs for extra depth */}
-          <div className="absolute top-1/3 left-[5%] w-32 h-32 bg-violet-500/5 rounded-full blur-2xl animate-pulse-slow" />
-          <div className="absolute bottom-1/4 right-[12%] w-40 h-40 bg-cyan-500/5 rounded-full blur-2xl animate-pulse-slow" style={{ animationDelay: "1.5s" }} />
+          {/* Single subtle gradient orb for depth */}
+          <div className="absolute top-1/3 left-[5%] w-32 h-32 bg-violet-500/3 rounded-full blur-2xl animate-pulse-slow" />
         </div>
       </section>
 
