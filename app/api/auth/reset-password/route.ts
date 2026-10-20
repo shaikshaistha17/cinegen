@@ -1,26 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase';
 import { hashPassword } from '@/lib/auth-helpers';
+import { validatePassword } from '@/lib/password-validation';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { password } = body;
 
-    if (!password || password.length < 8) {
+    // Validate password requirements using shared utility
+    const validation = validatePassword(password);
+    if (!validation.valid) {
       return NextResponse.json(
-        { error: 'Password must be at least 8 characters' },
-        { status: 400 }
-      );
-    }
-
-    // Password strength validation
-    const hasUppercase = /[A-Z]/.test(password);
-    const hasNumber = /\d/.test(password);
-    
-    if (!hasUppercase || !hasNumber) {
-      return NextResponse.json(
-        { error: 'Password must contain at least 1 uppercase letter and 1 number' },
+        { error: validation.errors[0] },
         { status: 400 }
       );
     }
@@ -50,18 +42,40 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Update password hash in users table (must succeed to stay in sync)
+    // Update password hash in users table to stay in sync
+    // Retry logic: if this fails, Auth has the new password but table has old hash
+    // We retry up to 3 times with exponential backoff to minimize inconsistency risk
+    // Exponential backoff: 100ms, 200ms before final attempt
     const passwordHash = await hashPassword(password);
-    const { error: tableError } = await supabase
-      .from('users')
-      .update({ password_hash: passwordHash, updated_at: new Date().toISOString() })
-      .eq('id', user.id);
+    let tableUpdateSuccess = false;
+    let lastError = null;
+    
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { error: tableError } = await supabase
+        .from('users')
+        .update({ 
+          password_hash: passwordHash, 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', user.id);
 
-    if (tableError) {
-      console.error('Failed to update password hash in users table:', tableError);
-      // Critical: password out of sync. Return error so user can retry.
+      if (!tableError) {
+        tableUpdateSuccess = true;
+        break;
+      }
+      
+      lastError = tableError;
+      // Exponential backoff delay before retry
+      if (attempt < 2) {
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
+      }
+    }
+
+    if (!tableUpdateSuccess) {
+      console.error('Failed to sync password hash to users table after 3 attempts:', lastError);
+      // Auth password was updated but table sync failed
       return NextResponse.json(
-        { error: 'Failed to complete password reset. Please try again.' },
+        { error: 'Password updated in authentication system but database sync failed. Please try resetting your password again to complete the update.' },
         { status: 500 }
       );
     }

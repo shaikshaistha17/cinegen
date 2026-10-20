@@ -83,7 +83,8 @@ export async function POST(req: NextRequest) {
 
     // Update password hash in users table to stay in sync
     // Retry logic: if this fails, Auth has the new password but table has old hash
-    // We retry up to 3 times to minimize inconsistency risk
+    // We retry up to 3 times with exponential backoff to minimize inconsistency risk
+    // Exponential backoff: 100ms, 200ms before final attempt
     const newPasswordHash = await hashPassword(newPassword);
     let tableUpdateSuccess = false;
     let lastError = null;
@@ -103,7 +104,7 @@ export async function POST(req: NextRequest) {
       }
       
       lastError = tableError;
-      // Wait briefly before retry (exponential backoff)
+      // Exponential backoff delay before retry
       if (attempt < 2) {
         await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
       }
