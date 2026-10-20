@@ -57,6 +57,8 @@ export type AiTool =
   | "Adobe Firefly"
   | "Udio";
 
+export type PriceRange = '$500-$1k' | '$1k-$3k' | '$3k-$5k' | '$5k-$10k' | '$10k+';
+
 // ─── Core Entities ────────────────────────────────────────────────────────────
 
 export interface WorkflowStep {
@@ -228,4 +230,21 @@ export interface FilterState {
   hourlyRateMax: number;
   verifiedOnly: boolean;
   sortBy: "relevance" | "rating" | "rate_asc" | "rate_desc" | "projects";
+}
+
+export interface CreatorService {
+  id: string;
+  creatorId: string;
+  creatorName?: string;
+  creatorAvatar?: string;
+  creatorHandle?: string;
+  title: string;
+  description: string;
+  skills: string[];
+  priceRange: PriceRange;
+  deliveryTime: string;
+  portfolioItems: { url: string; title: string }[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }

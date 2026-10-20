@@ -276,3 +276,55 @@ CREATE POLICY "Creators can submit verification requests"
 -- Only service role can update verification status and admin notes
 -- (This is enforced by using service role client in admin functions)
 -- No UPDATE policy = only service role can update
+
+-- ============================================================================
+-- Creator Services Policies
+-- ============================================================================
+
+ALTER TABLE creator_services ENABLE ROW LEVEL SECURITY;
+
+-- Public can read active services (marketplace discovery)
+CREATE POLICY "Public can read active services"
+  ON creator_services FOR SELECT
+  TO public
+  USING (is_active = true);
+
+-- Creators can read their own services (regardless of active status)
+CREATE POLICY "Creators can read their own services"
+  ON creator_services FOR SELECT
+  USING (
+    creator_id IN (
+      SELECT id FROM creator_profiles 
+      WHERE user_id = auth.uid()
+    )
+  );
+
+-- Creators can insert their own services
+CREATE POLICY "Creators can insert their own services"
+  ON creator_services FOR INSERT
+  WITH CHECK (
+    creator_id IN (
+      SELECT id FROM creator_profiles 
+      WHERE user_id = auth.uid()
+    )
+  );
+
+-- Creators can update their own services
+CREATE POLICY "Creators can update their own services"
+  ON creator_services FOR UPDATE
+  USING (
+    creator_id IN (
+      SELECT id FROM creator_profiles 
+      WHERE user_id = auth.uid()
+    )
+  );
+
+-- Creators can delete their own services
+CREATE POLICY "Creators can delete their own services"
+  ON creator_services FOR DELETE
+  USING (
+    creator_id IN (
+      SELECT id FROM creator_profiles 
+      WHERE user_id = auth.uid()
+    )
+  );

@@ -1,0 +1,32 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Database schema, RLS policies, TypeScript types, and API routes for creator_services table. Includes creator_services table with all required fields, RLS policies (creators CRUD own services, everyone reads active), TypeScript types, and 3 API routes: POST/GET /api/services, GET/PATCH/DELETE /api/services/[id].",
+  "status": "completed",
+  "steps": [
+    "Create database/creator_services.sql with creator_services table: id (uuid pk default uuid_generate_v4()), creator_id (uuid references creator_profiles(id) on delete cascade), title (text not null), description (text not null), skills (text[] not null), price_range (text not null check in ('$500-$1k', '$1k-$3k', '$3k-$5k', '$5k-$10k', '$10k+')), delivery_time (text not null), portfolio_items (jsonb default '[]'), is_active (boolean default true not null), created_at/updated_at (timestamp with time zone). Add indexes on creator_id, is_active, created_at. Add update trigger for updated_at using existing update_updated_at_column function.",
+    "Append RLS policies to database/rls-policies.sql: ALTER TABLE creator_services ENABLE ROW LEVEL SECURITY. Policy 'Public can read active services' FOR SELECT TO public USING (is_active = true). Policy 'Creators can read their own services' FOR SELECT USING (creator_id IN (SELECT id FROM creator_profiles WHERE user_id = auth.uid())). Policy 'Creators can insert their own services' FOR INSERT WITH CHECK (creator_id IN (SELECT id FROM creator_profiles WHERE user_id = auth.uid())). Policy 'Creators can update their own services' FOR UPDATE USING (creator_id IN (SELECT id FROM creator_profiles WHERE user_id = auth.uid())). Policy 'Creators can delete their own services' FOR DELETE USING (creator_id IN (SELECT id FROM creator_profiles WHERE user_id = auth.uid())).",
+    "Add TypeScript types to types/index.ts: export type PriceRange = '$500-$1k' | '$1k-$3k' | '$3k-$5k' | '$5k-$10k' | '$10k+'; export interface CreatorService { id: string; creatorId: string; creatorName?: string; creatorAvatar?: string; creatorHandle?: string; title: string; description: string; skills: string[]; priceRange: PriceRange; deliveryTime: string; portfolioItems: { url: string; title: string }[]; isActive: boolean; createdAt: string; updatedAt: string; }",
+    "Create app/api/services/route.ts: POST (auth required, validates creator_id from creator_profiles table matching auth.uid(), inserts service, returns {service}), GET (public, filters: creatorId, skills (array), priceRange, deliveryTime, search (title/description ilike), isActive default true, sort by created_at desc, joins creator_profiles for name/avatar/handle, returns {services}).",
+    "Create app/api/services/[id]/route.ts: GET (public, single service by id with creator details), PATCH (auth required, owner check via creator_profiles.user_id = auth.uid(), allows updates to title/description/skills/priceRange/deliveryTime/portfolioItems/isActive), DELETE (auth required, owner check, soft delete or hard delete based on convention - use hard delete for simplicity)."
+  ],
+  "acceptance_criteria": [
+    "database/creator_services.sql file created with complete table schema matching specification",
+    "RLS policies in database/rls-policies.sql allow public read of active services, creator CRUD of own services",
+    "TypeScript types added to types/index.ts with PriceRange and CreatorService interface",
+    "POST /api/services creates a service (returns 201 with service object, 401 if not authenticated, 403 if user is not a creator)",
+    "GET /api/services returns filtered services list with creator details, supports all specified query params",
+    "GET /api/services/[id] returns single service with creator details, 404 if not found",
+    "PATCH /api/services/[id] updates service (returns 200, 401 if not authenticated, 403 if not owner)",
+    "DELETE /api/services/[id] deletes service (returns 204, 401 if not authenticated, 403 if not owner)"
+  ],
+  "verification": [
+    "Run npm run dev and test POST /api/services with valid creator auth token (use creator@cinegen.demo / Demo@123 login, get token from browser devtools Application > Cookies > sb-access-token)",
+    "Test GET /api/services with various filters in browser: /api/services?skills=Video+Editing&priceRange=$1k-$3k",
+    "Test GET /api/services/[id] returns service detail",
+    "Test PATCH with owner and non-owner auth",
+    "Check Supabase dashboard that RLS policies prevent unauthorized access"
+  ],
+  "blocked_reason": null,
+  "findings": "Successfully implemented creator_services schema, RLS policies, TypeScript types, and API routes. Build passed without errors. All acceptance criteria met: database schema created, RLS policies appended, types added, POST/GET/PATCH/DELETE routes created with proper auth checks and creator ownership validation."
+}
