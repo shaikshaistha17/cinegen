@@ -15,6 +15,13 @@ const nextConfig = {
   },
   // Enable SWC minification for better performance
   swcMinify: true,
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      // Make resend an optional dependency - ignore if not installed
+      config.externals = [...(config.externals || []), 'resend'];
+    }
+    return config;
+  },
 };
 
 export default nextConfig;

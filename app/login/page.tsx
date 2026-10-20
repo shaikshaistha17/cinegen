@@ -3,11 +3,12 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Film, Eye, EyeOff, Copy, Check, Zap, Users, Search, ArrowRight, Sparkles } from "lucide-react";
+import { Film, Eye, EyeOff, Copy, Check, Zap, Users, Search, ArrowRight, Sparkles, CheckCircle } from "lucide-react";
 import { useSession } from "@/hooks/useSession";
 import { toast } from "sonner";
 
 type TabType = 'signin' | 'getstarted' | 'freeaccounts';
+type Role = 'brand' | 'creator';
 
 const DEMO_ACCOUNTS = [
   { name: "Aryan Kapoor", email: "aryan@cinegen.demo" },
@@ -52,6 +53,16 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  // Registration form states
+  const [regRole, setRegRole] = useState<Role>('brand');
+  const [regName, setRegName] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [regShowPass, setRegShowPass] = useState(false);
+  const [regLoading, setRegLoading] = useState(false);
+  const [regDone, setRegDone] = useState(false);
+  
   const { login, loginAsRole, session, loading: sessionLoading } = useSession();
   const router = useRouter();
 
@@ -92,6 +103,70 @@ export default function LoginPage() {
     await loginAsRole(role);
     toast.success(`Logged in as ${role === "brand" ? "Brand — Arjun Mehta" : "Creator — Aryan Kapoor"}`);
     window.location.href = "/dashboard";
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!regName.trim() || !regEmail.trim() || regPassword.length < 6) {
+      toast.error('Please fill all fields. Password must be at least 6 characters.');
+      return;
+    }
+    setRegLoading(true);
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: regEmail.trim(), 
+          password: regPassword, 
+          name: regName.trim(), 
+          role: regRole 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed');
+      }
+
+      // LOCAL MODE: Store user in localStorage
+      if (data.localMode && data.user) {
+        const users = JSON.parse(localStorage.getItem('cinegen_users') || '[]');
+        users.push(data.user);
+        localStorage.setItem('cinegen_users', JSON.stringify(users));
+        
+        // Create session
+        const session = {
+          userId: data.user.id,
+          email: data.user.email,
+          role: data.user.role,
+          name: data.user.name,
+          loginAt: new Date().toISOString(),
+        };
+        localStorage.setItem('cinegen_session', JSON.stringify(session));
+        
+        console.log('✅ Account created in local mode');
+      }
+
+      if (data.message && data.message.includes('email')) {
+        toast.info('Check your email for verification link');
+        setRegDone(true);
+        setTimeout(() => {
+          window.location.href = regRole === 'creator' ? '/onboarding' : '/dashboard';
+        }, 2000);
+      } else {
+        setRegDone(true);
+        toast.success(`Welcome to CineGen, ${regName.trim()}!`);
+        setTimeout(() => {
+          window.location.href = regRole === 'creator' ? '/onboarding' : '/dashboard';
+        }, 1000);
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Signup failed. Please try again.');
+    } finally {
+      setRegLoading(false);
+    }
   };
 
   return (
@@ -268,20 +343,134 @@ export default function LoginPage() {
           )}
 
           {activeTab === 'getstarted' && (
-            <div className="glass rounded-2xl border border-white/10 p-8 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center mx-auto mb-6">
-                <Sparkles className="w-8 h-8 text-white" />
-              </div>
-              <h2 className="font-display font-bold text-2xl mb-3">New to CineGen?</h2>
-              <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
-                Create your free account and start connecting with AI creators or posting your creative briefs.
-              </p>
-              <Link
-                href="/register"
-                className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-violet-600 to-violet-500 text-white rounded-xl font-semibold hover:from-violet-500 hover:to-violet-400 transition-all shadow-lg shadow-violet-500/25"
-              >
-                Create Your Account <ArrowRight className="w-4 h-4" />
-              </Link>
+            <div className="glass rounded-2xl border border-white/10 p-6">
+              {regDone ? (
+                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-8">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center mx-auto mb-6">
+                    <CheckCircle className="w-8 h-8 text-white" />
+                  </div>
+                  <h2 className="font-display font-bold text-2xl mb-2">You're in!</h2>
+                  <p className="text-muted-foreground">
+                    {regRole === 'creator' ? 'Setting up your creator profile...' : 'Taking you to your dashboard...'}
+                  </p>
+                </motion.div>
+              ) : (
+                <>
+                  <div className="text-center mb-6">
+                    <h2 className="font-display font-bold text-2xl mb-2">Create your account</h2>
+                    <p className="text-sm text-muted-foreground">
+                      Already have one?{' '}
+                      <button onClick={() => setActiveTab('signin')} className="text-violet-400 hover:text-violet-300 transition-colors font-medium">
+                        Sign in
+                      </button>
+                    </p>
+                  </div>
+
+                  {/* Role picker */}
+                  <div className="flex gap-2 mb-6 p-1 bg-white/5 rounded-xl">
+                    {(['brand', 'creator'] as Role[]).map((r) => (
+                      <button key={r} onClick={() => setRegRole(r)}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                          regRole === r
+                            ? r === 'brand'
+                              ? 'bg-gradient-to-r from-violet-600 to-violet-500 text-white shadow-lg shadow-violet-500/25'
+                              : 'bg-gradient-to-r from-cyan-600 to-cyan-500 text-white shadow-lg shadow-cyan-500/25'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}>
+                        {r === 'brand' ? <Sparkles className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
+                        {r === 'brand' ? "I'm a Brand" : "I'm a Creator"}
+                      </button>
+                    ))}
+                  </div>
+
+                  <form onSubmit={handleRegister} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1.5">
+                        {regRole === 'brand' ? 'Brand / Company Name' : 'Your Full Name'}
+                      </label>
+                      <input type="text" value={regName} onChange={(e) => setRegName(e.target.value)}
+                        placeholder={regRole === 'brand' ? 'e.g. Nexus Energy Co.' : 'e.g. Aryan Kapoor'}
+                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20 placeholder:text-muted-foreground transition-all"
+                        required />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1.5">Email address</label>
+                      <input type="email" value={regEmail} onChange={(e) => setRegEmail(e.target.value)}
+                        placeholder="you@example.com"
+                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20 placeholder:text-muted-foreground transition-all"
+                        required />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1.5">Password</label>
+                      <div className="relative">
+                        <input type={regShowPass ? 'text' : 'password'} value={regPassword}
+                          onChange={(e) => setRegPassword(e.target.value)}
+                          placeholder="At least 6 characters"
+                          className="w-full px-4 py-3 pr-10 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20 placeholder:text-muted-foreground transition-all"
+                          required minLength={6} />
+                        <button type="button" onClick={() => setRegShowPass(!regShowPass)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                          {regShowPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <button type="submit" disabled={regLoading}
+                      className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold text-white transition-all disabled:opacity-50 shadow-lg ${
+                        regRole === 'brand'
+                          ? 'bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 shadow-violet-500/25'
+                          : 'bg-gradient-to-r from-cyan-600 to-cyan-500 hover:from-cyan-500 hover:to-cyan-400 shadow-cyan-500/25'
+                      }`}>
+                      {regLoading ? <span className="animate-pulse">Creating account...</span> : (
+                        <>Create Account <ArrowRight className="w-4 h-4" /></>
+                      )}
+                    </button>
+
+                    <p className="text-xs text-muted-foreground text-center">
+                      By signing up you agree to our Terms & Privacy Policy
+                    </p>
+                  </form>
+
+                  {/* Benefits section */}
+                  <div className={`mt-6 pt-6 border-t border-white/5 space-y-2`}>
+                    <div className="flex items-center gap-2 mb-3">
+                      {regRole === 'brand' ? <Sparkles className="w-4 h-4 text-violet-400" /> : <Zap className="w-4 h-4 text-cyan-400" />}
+                      <h3 className="text-sm font-semibold">What you get</h3>
+                    </div>
+                    {regRole === 'brand' ? (
+                      <>
+                        <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                          <CheckCircle className="w-3.5 h-3.5 text-violet-400 mt-0.5 flex-shrink-0" />
+                          <span>Post unlimited campaign briefs</span>
+                        </div>
+                        <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                          <CheckCircle className="w-3.5 h-3.5 text-violet-400 mt-0.5 flex-shrink-0" />
+                          <span>AI-powered brief builder</span>
+                        </div>
+                        <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                          <CheckCircle className="w-3.5 h-3.5 text-violet-400 mt-0.5 flex-shrink-0" />
+                          <span>Access 18+ verified AI creators</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                          <CheckCircle className="w-3.5 h-3.5 text-cyan-400 mt-0.5 flex-shrink-0" />
+                          <span>Showcase your AI portfolio</span>
+                        </div>
+                        <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                          <CheckCircle className="w-3.5 h-3.5 text-cyan-400 mt-0.5 flex-shrink-0" />
+                          <span>Browse & apply to live briefs</span>
+                        </div>
+                        <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                          <CheckCircle className="w-3.5 h-3.5 text-cyan-400 mt-0.5 flex-shrink-0" />
+                          <span>Get matched to relevant brands</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           )}
 

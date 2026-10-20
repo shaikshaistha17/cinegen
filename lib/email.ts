@@ -10,11 +10,13 @@ export async function sendWelcomeEmail(email: string, name: string): Promise<voi
 
   if (apiKey) {
     try {
-      // Try to load Resend dynamically - catch if not installed
+      // Try to load Resend dynamically - resend is marked as external in next.config
       let Resend: any;
       try {
-        Resend = (await eval('import("resend")')).Resend;
-      } catch {
+        // @ts-expect-error - Resend is an optional dependency, may not be installed
+        const resendModule = await import('resend');
+        Resend = resendModule.Resend;
+      } catch (importError) {
         console.log(`📧 Welcome email would be sent to: ${email} (Resend package not installed)`);
         console.log(`Subject: Welcome to CineGen - Your Account is Ready!`);
         console.log(`Body: Congratulations ${name}! You've successfully created your CineGen account.`);
