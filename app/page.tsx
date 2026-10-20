@@ -1,18 +1,19 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
 import {
   ArrowRight, Sparkles, Play, Search, FileText, Handshake,
-  Star, CheckCircle2, Zap, TrendingUp, Users, Briefcase, Film, X
+  Star, CheckCircle2, Zap, TrendingUp, Users, Briefcase, Film, X, Clock
 } from "lucide-react";
 import Hero3DCreatorCard from "@/components/hero/Hero3DCreatorCard";
 import HeroFloatingBadge from "@/components/hero/HeroFloatingBadge";
 import HeroMeshGradient from "@/components/hero/HeroMeshGradient";
 import HeroAnimatedLines from "@/components/hero/HeroAnimatedLines";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { CreatorService } from "@/types";
 
 const ParticleBackground = dynamic(() => import("@/components/ui/ParticleBackground"), { ssr: false });
 
@@ -68,6 +69,137 @@ const AVAIL_COLOR: Record<string, string> = {
   Limited: "text-amber-400",
   Booked: "text-red-400",
 };
+
+function CreatorServicesSection() {
+  const [services, setServices] = useState<CreatorService[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchServices() {
+      try {
+        const response = await fetch("/api/services?isActive=true&limit=2");
+        if (response.ok) {
+          const data = await response.json();
+          setServices(data.services.slice(0, 2));
+        }
+      } catch (error) {
+        console.error("Error fetching services:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchServices();
+  }, []);
+
+  if (loading || services.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="py-16 bg-gradient-to-b from-transparent via-cyan-950/10 to-transparent">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-10">
+          <h2 className="font-display font-bold text-3xl mb-3">
+            <span className="gradient-text">Creator Services Marketplace</span>
+          </h2>
+          <p className="text-muted-foreground text-lg">
+            Discover creators offering ready-to-book services
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          {services.map((service, i) => {
+            const priceColor =
+              service.priceRange === "$10k+"
+                ? "from-amber-500 to-amber-600"
+                : service.priceRange === "$5k-$10k"
+                ? "from-violet-500 to-violet-600"
+                : "from-cyan-500 to-cyan-600";
+
+            return (
+              <motion.div
+                key={service.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 * i }}
+              >
+                <Link href={`/services/${service.id}`}>
+                  <div className="glass rounded-2xl border border-white/5 hover:border-cyan-500/30 transition-all group hover:-translate-y-1 cursor-pointer overflow-hidden h-full">
+                    {/* Creator header */}
+                    <div className="p-4 pb-3 border-b border-white/5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-cyan-600 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                          {service.creatorName?.charAt(0) || "?"}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-semibold truncate">
+                            {service.creatorName || "Unknown Creator"}
+                          </div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            {service.creatorHandle || "@creator"}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-4">
+                      <h3 className="font-semibold text-base mb-2 group-hover:text-cyan-300 transition-colors">
+                        {service.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground line-clamp-2 mb-3 leading-relaxed">
+                        {service.description}
+                      </p>
+
+                      {/* Skills */}
+                      <div className="flex flex-wrap gap-1 mb-4">
+                        {service.skills.slice(0, 4).map((skill) => (
+                          <span
+                            key={skill}
+                            className="text-xs px-1.5 py-0.5 bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 rounded"
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                        {service.skills.length > 4 && (
+                          <span className="text-xs px-1.5 py-0.5 bg-white/5 rounded text-muted-foreground">
+                            +{service.skills.length - 4}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Footer */}
+                      <div className="flex items-center justify-between pt-3 border-t border-white/5">
+                        <div
+                          className={`text-xs px-2 py-1 bg-gradient-to-r ${priceColor} rounded-lg text-white font-semibold`}
+                        >
+                          {service.priceRange}
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Clock className="w-3 h-3" />
+                          {service.deliveryTime}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        <div className="text-center">
+          <Link
+            href="/services"
+            className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-cyan-600/20 to-violet-600/20 border border-cyan-500/30 text-cyan-300 rounded-xl text-base font-semibold hover:from-cyan-600/30 hover:to-violet-600/30 transition-all shadow-lg"
+          >
+            Browse All Services <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 function HowItWorksCard({ step, index }: { step: typeof HOW_IT_WORKS[0]; index: number }) {
   const { ref, inView } = useInView({ threshold: 0.2, triggerOnce: true });
@@ -428,6 +560,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Creator Services Marketplace */}
+      <CreatorServicesSection />
 
       {/* Features Strip */}
       <section className="py-12 border-y border-white/5 bg-white/[0.01]">

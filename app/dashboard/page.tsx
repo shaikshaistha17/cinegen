@@ -371,6 +371,28 @@ function CreatorDashboard() {
           ))}
         </div>
       </div>
+
+      {/* Manage My Services */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-cyan-600/30 via-indigo-600/20 to-violet-600/20 border border-cyan-500/30 p-6">
+        <div className="absolute inset-0 bg-gradient-to-br from-cyan-600/10 to-transparent pointer-events-none" />
+        <div className="relative">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center shadow-lg">
+              <Briefcase className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="font-display font-bold text-xl">Manage My Services</h3>
+              <p className="text-sm text-muted-foreground">Post and manage your service offerings</p>
+            </div>
+          </div>
+          <Link
+            href="/dashboard/creator/services"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-cyan-600 to-cyan-500 text-white rounded-xl text-sm font-semibold hover:from-cyan-500 hover:to-cyan-400 transition-all shadow-lg shadow-cyan-500/25"
+          >
+            <Briefcase className="w-4 h-4" /> View My Services
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

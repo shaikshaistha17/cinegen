@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Film, Menu, X, LogOut, LayoutDashboard, FileText, Search, Zap, Plus, ChevronDown, Trophy, Shield, Calculator } from "lucide-react";
+import { Film, Menu, X, LogOut, LayoutDashboard, FileText, Search, Zap, Plus, ChevronDown, Trophy, Shield, Calculator, Briefcase } from "lucide-react";
 import { useSession } from "@/hooks/useSession";
 import { useAuth } from "@/lib/auth-context";
 import { signOut } from "@/lib/auth";
@@ -40,6 +40,7 @@ export function Navbar() {
 
   const navLinks = [
     { href: "/creators", label: "Discover", icon: Search },
+    { href: "/services", label: "Services", icon: Briefcase },
     { href: "/briefs", label: "Briefs", icon: FileText },
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   ];

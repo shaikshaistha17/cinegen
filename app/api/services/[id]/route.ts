@@ -6,8 +6,10 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { id } = params;
     const supabase = createClient();
 
+    // Fetch service with creator details
     const { data, error } = await supabase
       .from("creator_services")
       .select(
@@ -21,17 +23,15 @@ export async function GET(
         )
       `
       )
-      .eq("id", params.id)
+      .eq("id", id)
       .single();
 
-    if (error || !data) {
-      return NextResponse.json(
-        { error: "Service not found" },
-        { status: 404 }
-      );
+    if (error) throw error;
+    if (!data) {
+      return NextResponse.json({ error: "Service not found" }, { status: 404 });
     }
 
-    // Map to camelCase and flatten creator info
+    // Map to camelCase
     const service = {
       id: data.id,
       creatorId: data.creator_id,
@@ -64,6 +64,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { id } = params;
     const supabase = createClient();
     const {
       data: { user },
@@ -73,51 +74,40 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if user owns this service
+    // Check ownership
     const { data: service, error: fetchError } = await supabase
       .from("creator_services")
-      .select(
-        `
-        *,
-        creator:creator_profiles!inner(user_id)
-      `
-      )
-      .eq("id", params.id)
+      .select("creator_id, creator:creator_profiles(user_id)")
+      .eq("id", id)
       .single();
 
     if (fetchError || !service) {
-      return NextResponse.json(
-        { error: "Service not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Service not found" }, { status: 404 });
     }
 
-    if (service.creator.user_id !== user.id) {
+    if ((service.creator as any)?.user_id !== user.id) {
       return NextResponse.json(
         { error: "You can only update your own services" },
         { status: 403 }
       );
     }
 
-    // Parse update body
     const body = await request.json();
-    const updates: any = {};
-
-    if (body.title !== undefined) updates.title = body.title;
-    if (body.description !== undefined) updates.description = body.description;
-    if (body.skills !== undefined) updates.skills = body.skills;
-    if (body.priceRange !== undefined) updates.price_range = body.priceRange;
-    if (body.deliveryTime !== undefined)
-      updates.delivery_time = body.deliveryTime;
-    if (body.portfolioItems !== undefined)
-      updates.portfolio_items = body.portfolioItems;
-    if (body.isActive !== undefined) updates.is_active = body.isActive;
 
     // Update service
+    const updateData: any = {};
+    if (body.title !== undefined) updateData.title = body.title;
+    if (body.description !== undefined) updateData.description = body.description;
+    if (body.skills !== undefined) updateData.skills = body.skills;
+    if (body.priceRange !== undefined) updateData.price_range = body.priceRange;
+    if (body.deliveryTime !== undefined) updateData.delivery_time = body.deliveryTime;
+    if (body.portfolioItems !== undefined) updateData.portfolio_items = body.portfolioItems;
+    if (body.isActive !== undefined) updateData.is_active = body.isActive;
+
     const { data, error } = await supabase
       .from("creator_services")
-      .update(updates)
-      .eq("id", params.id)
+      .update(updateData)
+      .eq("id", id)
       .select()
       .single();
 
@@ -153,6 +143,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const { id } = params;
     const supabase = createClient();
     const {
       data: { user },
@@ -162,41 +153,30 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if user owns this service
+    // Check ownership
     const { data: service, error: fetchError } = await supabase
       .from("creator_services")
-      .select(
-        `
-        *,
-        creator:creator_profiles!inner(user_id)
-      `
-      )
-      .eq("id", params.id)
+      .select("creator_id, creator:creator_profiles(user_id)")
+      .eq("id", id)
       .single();
 
     if (fetchError || !service) {
-      return NextResponse.json(
-        { error: "Service not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Service not found" }, { status: 404 });
     }
 
-    if (service.creator.user_id !== user.id) {
+    if ((service.creator as any)?.user_id !== user.id) {
       return NextResponse.json(
         { error: "You can only delete your own services" },
         { status: 403 }
       );
     }
 
-    // Hard delete
-    const { error } = await supabase
-      .from("creator_services")
-      .delete()
-      .eq("id", params.id);
+    // Delete service
+    const { error } = await supabase.from("creator_services").delete().eq("id", id);
 
     if (error) throw error;
 
-    return new NextResponse(null, { status: 204 });
+    return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("Error deleting service:", error);
     return NextResponse.json(
