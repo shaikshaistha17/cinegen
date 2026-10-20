@@ -144,11 +144,39 @@ export function useSession() {
   const login = useCallback(
     async (email: string, password: string): Promise<boolean> => {
       try {
+        console.log('🔐 Login attempt for:', email);
+        
         // Check localStorage users first (local mode)
         const localUsers = JSON.parse(localStorage.getItem('cinegen_users') || '[]');
+        console.log('📦 Local users found:', localUsers.length);
+        
         const hasLocalUsers = localUsers.length > 0;
         
+        // LOCAL MODE: If we have local users, check them first
+        if (hasLocalUsers) {
+          const user = localUsers.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
+          if (user) {
+            console.log('✅ Found user in localStorage:', user.email);
+            const sess: Session = {
+              userId: user.id,
+              email: user.email,
+              role: user.role as UserRole,
+              name: user.name,
+              loginAt: new Date().toISOString(),
+            };
+            setSessionState(sess);
+            setCookie("cinegen_role", sess.role);
+            localStorage.setItem('cinegen_session', JSON.stringify(sess));
+            notifyAll();
+            console.log('✅ Logged in via localStorage');
+            return true;
+          } else {
+            console.log('❌ User not found in localStorage');
+          }
+        }
+        
         // Call our API endpoint which handles both demo and regular login
+        console.log('🌐 Calling API login...');
         const response = await fetch("/api/auth/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -156,31 +184,12 @@ export function useSession() {
         });
 
         if (!response.ok) {
-          // LOCAL MODE: Check localStorage
-          if (localUsers.length > 0) {
-            const user = localUsers.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
-            if (user) {
-              // Verify password (in real app, would use bcrypt.compare)
-              // For now, just check if user exists
-              const sess: Session = {
-                userId: user.id,
-                email: user.email,
-                role: user.role as UserRole,
-                name: user.name,
-                loginAt: new Date().toISOString(),
-              };
-              setSessionState(sess);
-              setCookie("cinegen_role", sess.role);
-              localStorage.setItem('cinegen_session', JSON.stringify(sess));
-              notifyAll();
-              console.log('✅ Logged in via localStorage');
-              return true;
-            }
-          }
+          console.log('❌ API login failed');
           return false;
         }
 
         const data = await response.json();
+        console.log('📥 API response:', data);
 
         // For demo accounts, we need to manually set the session
         if (data.isDemo) {
