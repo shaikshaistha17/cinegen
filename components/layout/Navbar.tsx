@@ -3,11 +3,12 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Film, Menu, X, LogOut, LayoutDashboard, FileText, Search, Zap, Plus, ChevronDown, Trophy, Shield, Calculator, Briefcase } from "lucide-react";
+import { Film, Menu, X, LogOut, LayoutDashboard, FileText, Search, Zap, Plus, ChevronDown, Trophy, Shield, Calculator, Briefcase, Sun, Moon } from "lucide-react";
 import { useSession } from "@/hooks/useSession";
 import { useAuth } from "@/lib/auth-context";
 import { signOut } from "@/lib/auth";
 import { toast } from "sonner";
+import { useTheme } from "@/hooks/useTheme";
 
 export function Navbar() {
   const { session, logout } = useSession();
@@ -17,6 +18,7 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     setMounted(true);
@@ -140,6 +142,17 @@ export function Navbar() {
               <div className="w-8 h-8 rounded-full bg-white/5 animate-pulse" />
             ) : activeUser ? (
               <>
+                {/* Theme toggle */}
+                {mounted && (
+                  <button
+                    onClick={toggleTheme}
+                    className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all"
+                    title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                    aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+                    {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                  </button>
+                )}
+
                 {/* User info with online status */}
                 <div className="flex items-center gap-2.5">
                   <div className="relative">
@@ -173,6 +186,17 @@ export function Navbar() {
               </>
             ) : (
               <>
+                {/* Theme toggle */}
+                {mounted && (
+                  <button
+                    onClick={toggleTheme}
+                    className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all"
+                    title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                    aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+                    {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                  </button>
+                )}
+
                 <Link href="/login"
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-2 rounded-lg hover:bg-white/5">
                   Sign In
@@ -213,6 +237,17 @@ export function Navbar() {
                   {link.label}
                 </Link>
               ))}
+
+              {/* Theme toggle in mobile */}
+              {mounted && (
+                <button
+                  onClick={toggleTheme}
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all w-full"
+                  aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+                  {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                  {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                </button>
+              )}
 
               {mounted && (activeUser || session) ? (
                 <div className="pt-3 border-t border-white/5 space-y-2">

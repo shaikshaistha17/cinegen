@@ -199,7 +199,7 @@ export default function RegisterPage() {
                   {role === 'brand' ? 'Brand / Company Name' : 'Your Full Name'}
                 </label>
                 <input type="text" value={name} onChange={(e) => setName(e.target.value)}
-                  placeholder={role === 'brand' ? 'e.g. Nexus Energy Co.' : 'e.g. Aryan Kapoor'}
+                  placeholder={role === 'brand' ? 'e.g. Nexus Energy Co.' : 'e.g. Shaistha Shaik'}
                   className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20 placeholder:text-muted-foreground transition-all"
                   required />
               </div>

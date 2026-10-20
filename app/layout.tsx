@@ -25,6 +25,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: `
+          (function() {
+            var theme = localStorage.getItem('cinegen-theme') || 'dark';
+            document.documentElement.classList.add(theme);
+          })();
+        ` }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
