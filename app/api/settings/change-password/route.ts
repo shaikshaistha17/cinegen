@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase';
 import { verifyPassword, hashPassword } from '@/lib/auth-helpers';
+import { validatePassword } from '@/lib/password-validation';
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,20 +15,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate new password requirements
-    if (newPassword.length < 8) {
+    // Validate new password requirements using shared utility
+    const validation = validatePassword(newPassword);
+    if (!validation.valid) {
       return NextResponse.json(
-        { error: 'New password must be at least 8 characters' },
-        { status: 400 }
-      );
-    }
-
-    const hasUppercase = /[A-Z]/.test(newPassword);
-    const hasNumber = /\d/.test(newPassword);
-    
-    if (!hasUppercase || !hasNumber) {
-      return NextResponse.json(
-        { error: 'New password must contain at least 1 uppercase letter and 1 number' },
+        { error: validation.errors[0] },
         { status: 400 }
       );
     }
@@ -61,8 +53,8 @@ export async function POST(req: NextRequest) {
 
     if (fetchError || !userData) {
       return NextResponse.json(
-        { error: 'User not found in database' },
-        { status: 404 }
+        { error: 'Failed to verify current password' },
+        { status: 401 }
       );
     }
 
@@ -90,19 +82,40 @@ export async function POST(req: NextRequest) {
     }
 
     // Update password hash in users table to stay in sync
+    // Retry logic: if this fails, Auth has the new password but table has old hash
+    // We retry up to 3 times to minimize inconsistency risk
     const newPasswordHash = await hashPassword(newPassword);
-    const { error: tableError } = await supabase
-      .from('users')
-      .update({ 
-        password_hash: newPasswordHash, 
-        updated_at: new Date().toISOString() 
-      })
-      .eq('id', user.id);
+    let tableUpdateSuccess = false;
+    let lastError = null;
+    
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { error: tableError } = await supabase
+        .from('users')
+        .update({ 
+          password_hash: newPasswordHash, 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', user.id);
 
-    if (tableError) {
-      console.error('Failed to update password hash in users table:', tableError);
+      if (!tableError) {
+        tableUpdateSuccess = true;
+        break;
+      }
+      
+      lastError = tableError;
+      // Wait briefly before retry (exponential backoff)
+      if (attempt < 2) {
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
+      }
+    }
+
+    if (!tableUpdateSuccess) {
+      console.error('Failed to sync password hash to users table after 3 attempts:', lastError);
+      // Auth password was updated but table sync failed
+      // User can still log in with new password (Auth is authoritative)
+      // but may have issues with future password changes until hash is synced
       return NextResponse.json(
-        { error: 'Failed to complete password update. Please try again.' },
+        { error: 'Password updated in authentication system but database sync failed. Please try changing your password again to complete the update.' },
         { status: 500 }
       );
     }

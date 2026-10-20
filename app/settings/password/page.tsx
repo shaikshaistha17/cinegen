@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { Film, Eye, EyeOff, Lock, CheckCircle, X, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSession } from '@/hooks/useSession';
+import { validatePassword } from '@/lib/password-validation';
 
 export default function ChangePasswordPage() {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -26,12 +27,10 @@ export default function ChangePasswordPage() {
     }
   }, [session, sessionLoading, router]);
 
-  // Password validation helpers
-  const hasMinLength = newPassword.length >= 8;
-  const hasUppercase = /[A-Z]/.test(newPassword);
-  const hasNumber = /\d/.test(newPassword);
+  // Password validation using shared utility
+  const validation = validatePassword(newPassword);
   const passwordsMatch = newPassword === confirmPassword && newPassword.length > 0;
-  const isValid = hasMinLength && hasUppercase && hasNumber && passwordsMatch && currentPassword.length > 0;
+  const isValid = validation.valid && passwordsMatch && currentPassword.length > 0;
 
   const isDemoAccount = session?.email?.toLowerCase().endsWith('@cinegen.demo');
 
@@ -260,32 +259,32 @@ export default function ChangePasswordPage() {
             </div>
             <ul className="space-y-3">
               <li className="flex items-center gap-3 text-sm">
-                {hasMinLength ? (
+                {validation.checks.minLength ? (
                   <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
                 ) : (
                   <X className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                 )}
-                <span className={hasMinLength ? 'text-foreground' : 'text-muted-foreground'}>
+                <span className={validation.checks.minLength ? 'text-foreground' : 'text-muted-foreground'}>
                   At least 8 characters
                 </span>
               </li>
               <li className="flex items-center gap-3 text-sm">
-                {hasUppercase ? (
+                {validation.checks.hasUppercase ? (
                   <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
                 ) : (
                   <X className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                 )}
-                <span className={hasUppercase ? 'text-foreground' : 'text-muted-foreground'}>
+                <span className={validation.checks.hasUppercase ? 'text-foreground' : 'text-muted-foreground'}>
                   At least 1 uppercase letter
                 </span>
               </li>
               <li className="flex items-center gap-3 text-sm">
-                {hasNumber ? (
+                {validation.checks.hasNumber ? (
                   <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
                 ) : (
                   <X className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                 )}
-                <span className={hasNumber ? 'text-foreground' : 'text-muted-foreground'}>
+                <span className={validation.checks.hasNumber ? 'text-foreground' : 'text-muted-foreground'}>
                   At least 1 number
                 </span>
               </li>
