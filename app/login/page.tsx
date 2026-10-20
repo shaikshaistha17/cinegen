@@ -7,9 +7,27 @@ import { Film, Eye, EyeOff, Copy, Check, Zap, Users, Search, ArrowRight, Sparkle
 import { useSession } from "@/hooks/useSession";
 import { toast } from "sonner";
 
-const CREDS = [
-  { role: "Brand", email: "brand@cinegen.demo", password: "Demo@123", desc: "Post briefs, discover creators, manage campaigns", color: "violet" },
-  { role: "Creator (Aryan)", email: "creator@cinegen.demo", password: "Demo@123", desc: "Browse briefs, submit proposals, manage profile", color: "cyan" },
+type TabType = 'signin' | 'getstarted' | 'freeaccounts';
+
+const DEMO_ACCOUNTS = [
+  { name: "Aryan Kapoor", email: "aryan@cinegen.demo" },
+  { name: "Priya Nair", email: "priya@cinegen.demo" },
+  { name: "Rahul Sharma", email: "rahul@cinegen.demo" },
+  { name: "Zara Ahmed", email: "zara@cinegen.demo" },
+  { name: "Marcus Chen", email: "marcus@cinegen.demo" },
+  { name: "Anjali Desai", email: "anjali@cinegen.demo" },
+  { name: "Vikram Rajan", email: "vikram@cinegen.demo" },
+  { name: "Lena Volkov", email: "lena@cinegen.demo" },
+  { name: "Dev Patel", email: "dev@cinegen.demo" },
+  { name: "Yuna Kim", email: "yuna@cinegen.demo" },
+  { name: "Rohan Mathur", email: "rohan@cinegen.demo" },
+  { name: "Aisha Okafor", email: "aisha@cinegen.demo" },
+  { name: "Sameer Joshi", email: "sameer@cinegen.demo" },
+  { name: "Carlos Rivera", email: "carlos@cinegen.demo" },
+  { name: "Meera Iyer", email: "meera@cinegen.demo" },
+  { name: "Tanvir Sheikh", email: "tanvir@cinegen.demo" },
+  { name: "Natasha Pinto", email: "natasha@cinegen.demo" },
+  { name: "Ishaan Verma", email: "ishaan@cinegen.demo" },
 ];
 
 function CopyButton({ text }: { text: string }) {
@@ -28,6 +46,7 @@ function CopyButton({ text }: { text: string }) {
 }
 
 export default function LoginPage() {
+  const [activeTab, setActiveTab] = useState<TabType>('signin');
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
@@ -83,7 +102,7 @@ export default function LoginPage() {
         <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl" />
       </div>
 
-      <div className="relative w-full max-w-4xl">
+      <div className="relative w-full max-w-lg">
         <div className="text-center mb-10">
           <Link href="/" className="inline-flex items-center gap-2 mb-6">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center">
@@ -100,193 +119,198 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-          {/* Login Form */}
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="glass rounded-2xl border border-white/10 p-6">
-            <h2 className="font-semibold text-lg mb-6">Sign In</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1.5">Email</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="brand@cinegen.demo"
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20 placeholder:text-muted-foreground transition-all"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1.5">Password</label>
-                <div className="relative">
+        {/* Tab navigation */}
+        <div className="flex gap-2 mb-6 p-1 glass rounded-xl border border-white/10">
+          <button
+            onClick={() => setActiveTab('signin')}
+            className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
+              activeTab === 'signin'
+                ? 'bg-violet-500/20 border border-violet-500/40 text-violet-300'
+                : 'bg-white/5 border border-white/10 text-muted-foreground hover:bg-white/10'
+            }`}
+          >
+            Sign In
+          </button>
+          <button
+            onClick={() => setActiveTab('getstarted')}
+            className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
+              activeTab === 'getstarted'
+                ? 'bg-violet-500/20 border border-violet-500/40 text-violet-300'
+                : 'bg-white/5 border border-white/10 text-muted-foreground hover:bg-white/10'
+            }`}
+          >
+            Get Started
+          </button>
+          <button
+            onClick={() => setActiveTab('freeaccounts')}
+            className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
+              activeTab === 'freeaccounts'
+                ? 'bg-violet-500/20 border border-violet-500/40 text-violet-300'
+                : 'bg-white/5 border border-white/10 text-muted-foreground hover:bg-white/10'
+            }`}
+          >
+            Free User Accounts
+          </button>
+        </div>
+
+        {/* Tab content */}
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          {activeTab === 'signin' && (
+            <div className="glass rounded-2xl border border-white/10 p-6">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Email</label>
                   <input
-                    type={showPass ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Demo@123"
-                    className="w-full px-4 py-3 pr-10 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20 placeholder:text-muted-foreground transition-all"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="brand@cinegen.demo"
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20 placeholder:text-muted-foreground transition-all"
                     required
                   />
-                  <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                    {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Password</label>
+                  <div className="relative">
+                    <input
+                      type={showPass ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Demo@123"
+                      className="w-full px-4 py-3 pr-10 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20 placeholder:text-muted-foreground transition-all"
+                      required
+                    />
+                    <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                      {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Link href="/auth/forgot-password" className="text-sm text-violet-400 hover:text-violet-300 transition-colors">
+                    Forgot password?
+                  </Link>
+                </div>
+
+                {error && (
+                  <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3 bg-gradient-to-r from-violet-600 to-violet-500 text-white rounded-xl font-semibold hover:from-violet-500 hover:to-violet-400 transition-all disabled:opacity-50 shadow-lg shadow-violet-500/25"
+                >
+                  {loading ? "Signing in..." : "Sign In"}
+                </button>
+              </form>
+
+              <div className="relative my-5">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-white/10" />
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="px-3 bg-transparent text-xs text-muted-foreground">or jump in instantly</span>
                 </div>
               </div>
 
-              <div className="flex justify-end">
-                <Link href="/auth/forgot-password" className="text-sm text-violet-400 hover:text-violet-300 transition-colors">
-                  Forgot password?
+              <div className="space-y-2">
+                <button
+                  onClick={() => handleOneClick("brand")}
+                  className="w-full flex items-center gap-3 px-4 py-3 bg-violet-500/10 border border-violet-500/20 rounded-xl hover:bg-violet-500/20 transition-all group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-violet-500/20 flex items-center justify-center">
+                    <Sparkles className="w-4 h-4 text-violet-400" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <div className="text-sm font-medium">Continue as Brand</div>
+                    <div className="text-xs text-muted-foreground">Post briefs & hire creators</div>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-violet-400 transition-colors" />
+                </button>
+
+                <button
+                  onClick={() => handleOneClick("creator")}
+                  className="w-full flex items-center gap-3 px-4 py-3 bg-cyan-500/10 border border-cyan-500/20 rounded-xl hover:bg-cyan-500/20 transition-all group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                    <Zap className="w-4 h-4 text-cyan-400" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <div className="text-sm font-medium">Continue as Creator</div>
+                    <div className="text-xs text-muted-foreground">Browse briefs & submit proposals</div>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-cyan-400 transition-colors" />
+                </button>
+
+                <Link
+                  href="/creators"
+                  className="w-full flex items-center gap-3 px-4 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                    <Search className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <div className="text-sm font-medium">Explore as Guest</div>
+                    <div className="text-xs text-muted-foreground">Browse creators without signing in</div>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                 </Link>
               </div>
-
-              {error && (
-                <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
-                  {error}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 bg-gradient-to-r from-violet-600 to-violet-500 text-white rounded-xl font-semibold hover:from-violet-500 hover:to-violet-400 transition-all disabled:opacity-50 shadow-lg shadow-violet-500/25"
-              >
-                {loading ? "Signing in..." : "Sign In"}
-              </button>
-            </form>
-
-            <div className="relative my-5">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-white/10" />
-              </div>
-              <div className="relative flex justify-center">
-                <span className="px-3 bg-transparent text-xs text-muted-foreground">or jump in instantly</span>
-              </div>
             </div>
+          )}
 
-            <div className="space-y-2">
-              <button
-                onClick={() => handleOneClick("brand")}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-violet-500/10 border border-violet-500/20 rounded-xl hover:bg-violet-500/20 transition-all group"
-              >
-                <div className="w-8 h-8 rounded-lg bg-violet-500/20 flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-violet-400" />
-                </div>
-                <div className="flex-1 text-left">
-                  <div className="text-sm font-medium">Continue as Brand</div>
-                  <div className="text-xs text-muted-foreground">Post briefs & hire creators</div>
-                </div>
-                <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-violet-400 transition-colors" />
-              </button>
-
-              <button
-                onClick={() => handleOneClick("creator")}
-                className="w-full flex items-center gap-3 px-4 py-3 bg-cyan-500/10 border border-cyan-500/20 rounded-xl hover:bg-cyan-500/20 transition-all group"
-              >
-                <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
-                  <Zap className="w-4 h-4 text-cyan-400" />
-                </div>
-                <div className="flex-1 text-left">
-                  <div className="text-sm font-medium">Continue as Creator</div>
-                  <div className="text-xs text-muted-foreground">Browse briefs & submit proposals</div>
-                </div>
-                <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-cyan-400 transition-colors" />
-              </button>
-
+          {activeTab === 'getstarted' && (
+            <div className="glass rounded-2xl border border-white/10 p-8 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center mx-auto mb-6">
+                <Sparkles className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="font-display font-bold text-2xl mb-3">New to CineGen?</h2>
+              <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+                Create your free account and start connecting with AI creators or posting your creative briefs.
+              </p>
               <Link
-                href="/creators"
-                className="w-full flex items-center gap-3 px-4 py-3 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-all group"
+                href="/register"
+                className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-violet-600 to-violet-500 text-white rounded-xl font-semibold hover:from-violet-500 hover:to-violet-400 transition-all shadow-lg shadow-violet-500/25"
               >
-                <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                  <Search className="w-4 h-4 text-muted-foreground" />
-                </div>
-                <div className="flex-1 text-left">
-                  <div className="text-sm font-medium">Explore as Guest</div>
-                  <div className="text-xs text-muted-foreground">Browse creators without signing in</div>
-                </div>
-                <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                Create Your Account <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
-          </motion.div>
+          )}
 
-          {/* Credentials Card */}
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-            {/* Judge callout */}
-            <div className="bg-gradient-to-br from-violet-500/10 to-cyan-500/5 border border-violet-500/20 rounded-2xl p-5 mb-4">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center">
-                  <Users className="w-3 h-3 text-white" />
-                </div>
-                <span className="font-semibold text-sm text-violet-300">For Judges & Evaluators</span>
+          {activeTab === 'freeaccounts' && (
+            <div className="glass rounded-2xl border border-white/10 p-6">
+              <div className="mb-4">
+                <h2 className="font-semibold text-lg mb-2">Free Demo Accounts</h2>
+                <p className="text-sm text-muted-foreground">
+                  All accounts use password: <code className="bg-white/5 px-2 py-1 rounded text-foreground font-mono text-xs">Demo@123</code>
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground mb-4">
-                Use the 1-click buttons or credentials below. No email verification, no OTP — instant access.
-              </p>
-
-              <div className="space-y-3">
-                {CREDS.map((c) => (
-                  <div key={c.role} className={`p-4 rounded-xl bg-${c.color}-500/10 border border-${c.color}-500/20`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className={`text-xs font-semibold text-${c.color}-400 uppercase tracking-wider`}>{c.role} Account</span>
+              
+              <div className="space-y-1 max-h-[400px] overflow-y-auto pr-1">
+                {DEMO_ACCOUNTS.map((account) => (
+                  <div
+                    key={account.email}
+                    className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-white/5 transition-colors group"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium">{account.name}</div>
+                      <div className="text-xs text-muted-foreground truncate">{account.email}</div>
                     </div>
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Email:</span>
-                        <div className="flex items-center gap-1">
-                          <code className="text-xs text-foreground bg-white/5 px-2 py-0.5 rounded">{c.email}</code>
-                          <CopyButton text={c.email} />
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Password:</span>
-                        <div className="flex items-center gap-1">
-                          <code className="text-xs text-foreground bg-white/5 px-2 py-0.5 rounded">{c.password}</code>
-                          <CopyButton text={c.password} />
-                        </div>
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">{c.desc}</p>
+                    <CopyButton text={account.email} />
                   </div>
                 ))}
               </div>
             </div>
-
-            {/* Feature list */}
-            <div className="glass border border-white/5 rounded-2xl p-5">
-              <h3 className="font-semibold text-sm mb-4 text-muted-foreground uppercase tracking-wider">All 18 creator accounts</h3>
-              <p className="text-xs text-muted-foreground mb-3">All use password: <code className="bg-white/5 px-1.5 py-0.5 rounded text-foreground">Demo@123</code></p>
-              <div className="grid grid-cols-1 gap-1 max-h-48 overflow-y-auto pr-1">
-                {[
-                  { name: "Aryan Kapoor", email: "aryan@cinegen.demo" },
-                  { name: "Priya Nair", email: "priya@cinegen.demo" },
-                  { name: "Rahul Sharma", email: "rahul@cinegen.demo" },
-                  { name: "Zara Ahmed", email: "zara@cinegen.demo" },
-                  { name: "Marcus Chen", email: "marcus@cinegen.demo" },
-                  { name: "Anjali Desai", email: "anjali@cinegen.demo" },
-                  { name: "Vikram Rajan", email: "vikram@cinegen.demo" },
-                  { name: "Lena Volkov", email: "lena@cinegen.demo" },
-                  { name: "Dev Patel", email: "dev@cinegen.demo" },
-                  { name: "Yuna Kim", email: "yuna@cinegen.demo" },
-                  { name: "Rohan Mathur", email: "rohan@cinegen.demo" },
-                  { name: "Aisha Okafor", email: "aisha@cinegen.demo" },
-                  { name: "Sameer Joshi", email: "sameer@cinegen.demo" },
-                  { name: "Carlos Rivera", email: "carlos@cinegen.demo" },
-                  { name: "Meera Iyer", email: "meera@cinegen.demo" },
-                  { name: "Tanvir Sheikh", email: "tanvir@cinegen.demo" },
-                  { name: "Natasha Pinto", email: "natasha@cinegen.demo" },
-                  { name: "Ishaan Verma", email: "ishaan@cinegen.demo" },
-                ].map((c) => (
-                  <div key={c.email} className="flex items-center justify-between py-1 px-2 rounded hover:bg-white/5 transition-colors">
-                    <span className="text-xs text-foreground font-medium">{c.name}</span>
-                    <div className="flex items-center gap-1">
-                      <code className="text-xs text-muted-foreground">{c.email}</code>
-                      <CopyButton text={c.email} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        </div>
+          )}
+        </motion.div>
       </div>
     </div>
   );

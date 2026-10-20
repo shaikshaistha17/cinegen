@@ -177,7 +177,7 @@ export function Navbar() {
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-2 rounded-lg hover:bg-white/5">
                   Sign In
                 </Link>
-                <Link href="/login"
+                <Link href="/register"
                   className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-violet-600 to-violet-500 text-white rounded-lg text-sm font-semibold hover:from-violet-500 hover:to-violet-400 transition-all shadow-lg shadow-violet-500/25">
                   Get Started
                 </Link>

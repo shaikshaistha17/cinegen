@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase';
 import { hashPassword } from '@/lib/auth-helpers';
+import { sendWelcomeEmail } from '@/lib/email';
 
 // Helper to check if Supabase is configured
 function isSupabaseConfigured(): boolean {
@@ -147,6 +148,16 @@ export async function POST(req: NextRequest) {
 
       if (profileError) {
         console.error('Error creating brand profile:', profileError);
+      }
+    }
+
+    // Send welcome email (non-blocking, only in Supabase mode)
+    if (authData.user) {
+      try {
+        await sendWelcomeEmail(authData.user.email!, name);
+      } catch (emailError) {
+        // Log but don't fail registration
+        console.error('Failed to send welcome email:', emailError);
       }
     }
 
