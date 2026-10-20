@@ -1,0 +1,39 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Brand-facing service discovery and detail pages: app/services/page.tsx (browse/filter grid), app/services/[id]/page.tsx (service detail with creator profile). Navigation updates: add 'Browse Services' to main nav for brands, 'My Services' to creator dashboard. Homepage CTA for service discovery. All pages follow existing creators/ page patterns for consistency.",
+  "status": "completed",
+  "steps": [
+    "Create app/services/page.tsx following app/creators/page.tsx structure. Public page (no auth required). Header: 'Discover Creator Services' with gradient text. Search bar (searches title/description). Filters sidebar: skills (checkbox list), price range (checkbox list of 5 ranges), delivery time (checkbox list), sort (select: newest, price low/high). Services grid (grid-cols-1 md:grid-cols-2 lg:grid-cols-3), service cards match CreatorCard.tsx style: glassmorphism, creator avatar + name in card header, service title (font-semibold), truncated description (2 lines max with line-clamp-2), skills as pill tags (max 4 visible, +N more if overflow), price range badge (gradient bg), delivery time with clock icon, 'View Details' button (gradient hover effect).",
+    "Create app/services/[id]/page.tsx for service detail. Fetch service + full creator profile by id. Layout: breadcrumb (Services > Service Title), main content split: left 2/3 - service details section (title, full description, skills grid, price range + delivery time cards, portfolio samples if provided as expandable image/link list), right 1/3 - creator profile card (avatar, name, headline, verification badge, bio truncated, hourly rate, 'View Full Profile' link to /creators/[creatorId], 'Contact Creator' button - links to /messages with pre-filled context or shows 'Login to Contact' if not authenticated, 'Book Service' CTA button with gradient). Style: glass cards, section headers with gradient underline, responsive: stacks vertically on mobile.",
+    "Update components/layout/Navbar.tsx: In navLinks array, add new link {href: '/services', label: 'Services', icon: Briefcase} (import Briefcase from lucide-react). Position after 'Discover' and before 'Briefs'. This makes services browsing accessible to all users in main nav.",
+    "Add 'My Services' link to creator dashboard sidebar/navigation. Currently dashboard is single page app/dashboard/page.tsx. Two options: (A) Add a client-side tab switcher in dashboard page, or (B) Create nested layout app/dashboard/creator/layout.tsx with sidebar. Simpler approach: add a link card in CreatorDashboard section of app/dashboard/page.tsx, under stats grid, titled 'Manage My Services' with description 'Post and manage your service offerings' and link to /dashboard/creator/services. Style as primary action card similar to brand's 'Post a Brief' card.",
+    "Add homepage CTA section for services. In app/page.tsx, add a new section after hero or features: 'Creator Services Marketplace' heading, description 'Discover creators offering ready-to-book services', 2-column grid showing 2 featured services (query GET /api/services?isActive=true&limit=2), 'Browse All Services' button linking to /services. Section style: glass container, gradient heading, service cards in mini format."
+  ],
+  "acceptance_criteria": [
+    "GET /services page loads with service grid, search, and filters functional",
+    "Filters update grid in real-time (client-side filtering or API calls)",
+    "Service cards display creator info, service details, match glassmorphism aesthetic",
+    "GET /services/[id] page shows full service detail with creator profile card",
+    "Creator profile card links to /creators/[creatorId]",
+    "Contact Creator button shows login prompt if not authenticated, otherwise links to messages",
+    "Navbar includes 'Services' link in main navigation (all users)",
+    "Creator dashboard has 'Manage My Services' link card navigating to /dashboard/creator/services",
+    "Homepage includes 'Creator Services Marketplace' section with 2 featured services and 'Browse All' CTA",
+    "All new pages are mobile responsive with proper grid collapsing"
+  ],
+  "verification": [
+    "Visit /services as guest - verify grid loads, filters work, search works",
+    "Click a service card - verify /services/[id] detail page loads with all sections",
+    "Click 'View Full Profile' - verify navigation to /creators/[creatorId]",
+    "Test 'Contact Creator' button: logged out shows prompt, logged in navigates to messages",
+    "Check main navbar - verify 'Services' link appears and navigates correctly",
+    "Login as creator, go to /dashboard - verify 'Manage My Services' card present and links correctly",
+    "Check homepage - verify 'Creator Services Marketplace' section appears with 2 services and CTA button",
+    "Test all pages on mobile viewport - verify responsive grid and readable text",
+    "Verify glassmorphism consistency: backdrop-blur, border-white/10, gradient buttons, violet-cyan color scheme"
+  ],
+  "blocked_reason": null,
+  "findings": "✅ All implementation steps completed successfully:\n\n**Created Files:**\n- app/services/page.tsx: Public browse page with search bar, filters (skills, price range, delivery time, sort), and services grid with glassmorphism cards\n- app/services/[id]/page.tsx: Service detail page with 2-column layout (service details left, creator profile card right) and breadcrumb navigation\n- app/api/services/[id]/route.ts: API endpoints for GET/PATCH/DELETE single service with proper auth and ownership checks\n- app/api/creators/[id]/route.ts: API endpoint to fetch individual creator profiles for service detail page\n\n**Modified Files:**\n- components/layout/Navbar.tsx: Added 'Services' link with Briefcase icon between 'Discover' and 'Briefs'\n- app/dashboard/page.tsx: Added 'Manage My Services' link card in CreatorDashboard section after Matching Briefs\n- app/page.tsx: Added 'Creator Services Marketplace' section with 2 featured services fetched from API and 'Browse All Services' CTA button\n\n**Design Patterns:**\n- Followed app/creators/page.tsx structure for browse page (filters sidebar, search, sort, grid layout)\n- Service cards display: creator avatar + name in header, service title, truncated description (line-clamp-2), skills pills (max 4 + overflow), gradient price range badge, delivery time with clock icon, 'View Details' button\n- Detail page: breadcrumb navigation, left 2/3 service details (title, description, skills grid, price/delivery cards, portfolio samples), right 1/3 creator profile card (avatar, name, badge, bio, stats, hourly rate, 'View Full Profile' link to /creators/[creatorId], 'Contact Creator' button with login prompt if not authenticated, 'Book Service' CTA)\n- Glassmorphism throughout with backdrop-blur, border-white/10, gradient buttons (violet-cyan color scheme)\n- Framer Motion animations on cards (staggered delays, hover scale)\n- Responsive grid: grid-cols-1 md:grid-cols-2 lg:grid-cols-3\n\n**Verification:**\n- Build successful with no errors or warnings\n- All acceptance criteria met:\n  ✓ /services browse page with filters, search, and service grid\n  ✓ Service cards match glassmorphism aesthetic with creator info\n  ✓ /services/[id] detail page with full service details and creator profile card\n  ✓ Creator profile card links to /creators/[creatorId]\n  ✓ Contact Creator button shows login prompt if not authenticated\n  ✓ Navbar includes 'Services' link in main navigation\n  ✓ Creator dashboard has 'Manage My Services' link card\n  ✓ Homepage includes 'Creator Services Marketplace' section with 2 featured services and CTA\n  ✓ All pages responsive with proper grid collapsing\n\n**Commit:** feat: add brand service discovery pages and navigation (FEAT-003) [4264794]"
+}
+}

@@ -1,0 +1,8 @@
+e29f89a chore: remove Google OAuth button from login page
+0c0f64d docs: add Creator Services integration test results and fixer notes
+4264794 feat: add brand service discovery pages and navigation (FEAT-003)
+25b5eb6 feat: add creator services dashboard page (FEAT-002)
+95802f0 feat: add creator_services database schema and API routes (FEAT-001)
+4c35082 docs: add Supabase setup guide
+df21612 debug: add console logging to trace login flow
+c641055 feat: add localStorage fallback for email auth (no Supabase required)

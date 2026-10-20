@@ -1,0 +1,32 @@
+{
+  "project_type": "Next.js 14 App Router + TypeScript + Supabase (PostgreSQL) + Tailwind CSS",
+  "language": "TypeScript",
+  "build_system": "npm with Next.js 14 - no custom build script, uses standard Next.js build",
+  "test_framework": "No test framework configured - manual testing via `npm run dev` on localhost:3002",
+  "build_command": "npm run build",
+  "test_command": "Manual: npm run dev, then test in browser at http://localhost:3002",
+  "verification_instructions": "1. Start dev server: npm run dev (port 3002). 2. Test each feature manually in browser. 3. Check Supabase dashboard for RLS policy compliance. 4. Verify glassmorphism aesthetic matches existing pages. 5. Test auth-required routes with brand/creator logins.",
+  "snapshot_or_generated_files": null,
+  "environment_constraints": "Dev server runs on port 3002 (not 3000). Supabase project already configured with URL hoiqipfguwpdihgfrqyy.supabase.co. Never restart or change dev server port. Auth uses both Supabase client-side auth AND legacy session system (localStorage) - maintain compatibility with both.",
+  "contribution_requirements": "Follow existing glassmorphism design system. All new tables require RLS policies. API routes use createClient() for client auth or createServiceClient() for admin operations. Match existing animation patterns (Framer Motion). Use Lucide icons. Follow responsive grid pattern: grid-cols-1 md:grid-cols-2 lg:grid-cols-3.",
+  "key_patterns": "API routes: GET for list, POST for create, use NextRequest/NextResponse. Auth check: const {data:{user}} = await supabase.auth.getUser(). RLS policies: public read for active items, owner-only write. Database fields use snake_case, TypeScript uses camelCase - mapping in API. Glassmorphism: 'glass' or 'glass-card' classes with border-white/10. Gradient buttons: from-violet-600 to-cyan-500. Cards animate on hover with Framer Motion (whileHover, scale, translateY).",
+  "relevant_files": [
+    "database/schema.sql",
+    "database/rls-policies.sql",
+    "app/api/creators/route.ts",
+    "app/api/briefs/route.ts",
+    "app/api/proposals/route.ts",
+    "app/dashboard/page.tsx",
+    "app/creators/page.tsx",
+    "app/creators/[id]/page.tsx",
+    "components/layout/Navbar.tsx",
+    "components/creators/CreatorCard.tsx",
+    "lib/supabase.ts",
+    "lib/utils.ts",
+    "hooks/useCreators.ts",
+    "hooks/useBriefs.ts",
+    "hooks/useSession.ts",
+    "types/index.ts"
+  ],
+  "directory_structure": "app/ contains pages and api/ routes. app/api/[resource]/route.ts for collection endpoints, app/api/[resource]/[id]/route.ts for single-item endpoints. app/dashboard/ for authenticated views. components/ split into layout/, creators/, briefs/. database/ has schema.sql and rls-policies.sql. hooks/ for data fetching. lib/ for utilities and Supabase clients. types/index.ts for all TypeScript types."
+}
