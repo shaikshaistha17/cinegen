@@ -238,3 +238,138 @@ body {
     animation: none !important;
   }
 }
+
+/* === PREMIUM UI ADDITIONS === */
+
+/* Animated gradient border */
+@keyframes border-spin {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.gradient-border-animated {
+  background: linear-gradient(90deg, #8b5cf6, #22d3ee, #8b5cf6) 0% 50% / 200% 200%;
+  animation: border-spin 4s linear infinite;
+}
+
+/* Glow orb */
+@keyframes orb-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.15); opacity: 0.7; }
+}
+
+.orb-glow {
+  animation: orb-pulse 5s ease-in-out infinite;
+}
+
+/* Card shine sweep */
+@keyframes shine-sweep {
+  0% { left: -100%; }
+  100% { left: 150%; }
+}
+
+.card-shine::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+  animation: shine-sweep 3.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* 3D tilt card — combined with JS or CSS hover */
+.card-3d {
+  transform-style: preserve-3d;
+  perspective: 1000px;
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+}
+.card-3d:hover {
+  transform: rotateY(-4deg) rotateX(3deg) translateZ(10px);
+  box-shadow: 20px 20px 60px rgba(139, 92, 246, 0.2), -4px -4px 20px rgba(34, 211, 238, 0.1);
+}
+
+/* Orbit animation for floating elements */
+@keyframes orbit {
+  0% { transform: rotate(0deg) translateX(60px) rotate(0deg); }
+  100% { transform: rotate(360deg) translateX(60px) rotate(-360deg); }
+}
+.animate-orbit {
+  animation: orbit 12s linear infinite;
+}
+
+/* Glow ring on avatar */
+.avatar-glow {
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.4), 0 0 20px rgba(139, 92, 246, 0.3);
+}
+.avatar-glow-cyan {
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.4), 0 0 20px rgba(34, 211, 238, 0.3);
+}
+
+/* Light mode glass improvements */
+.light .glass-card {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(139, 92, 246, 0.15);
+  box-shadow: 0 4px 24px rgba(139, 92, 246, 0.08);
+}
+.light .glass {
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Creator card hover glow */
+.creator-card-hover {
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.creator-card-hover:hover {
+  transform: translateY(-6px) scale(1.01);
+  box-shadow: 0 20px 60px rgba(139, 92, 246, 0.2), 0 0 0 1px rgba(139, 92, 246, 0.3);
+}
+
+/* Stat number gradient */
+.stat-number {
+  background: linear-gradient(135deg, #a78bfa, #22d3ee);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-size: 2.5rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* Section heading accent underline */
+.section-heading-accent {
+  position: relative;
+  display: inline-block;
+}
+.section-heading-accent::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 0;
+  width: 40%;
+  height: 3px;
+  background: linear-gradient(90deg, #8b5cf6, #22d3ee);
+  border-radius: 2px;
+}
+
+/* Floating badge pulse */
+@keyframes badge-float {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-8px) rotate(2deg); }
+}
+.badge-float {
+  animation: badge-float 4s ease-in-out infinite;
+}
+
+/* CTA glow pulse */
+@keyframes cta-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.4), 0 0 40px rgba(139, 92, 246, 0.2); }
+  50% { box-shadow: 0 0 30px rgba(139, 92, 246, 0.7), 0 0 60px rgba(34, 211, 238, 0.3); }
+}
+.cta-glow-pulse {
+  animation: cta-glow 3s ease-in-out infinite;
+}

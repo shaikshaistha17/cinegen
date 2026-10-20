@@ -55,8 +55,7 @@ export function Navbar() {
   ];
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-white/10 glass-strong"
-      style={{ background: "rgba(10,10,15,0.95)" }}>
+    <nav className="sticky top-0 z-50 border-b border-gray-200 dark:border-white/10 backdrop-blur-xl bg-white/90 dark:bg-[rgba(10,10,15,0.95)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
 
@@ -67,7 +66,7 @@ export function Navbar() {
               className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-violet-500/25">
               <Film className="w-4 h-4 text-white" />
             </motion.div>
-            <span className="font-display font-bold text-xl tracking-tight">
+            <span className="font-display font-bold text-xl tracking-tight text-gray-900 dark:text-white">
               Cine<span className="gradient-primary">Gen</span>
             </span>
           </Link>
@@ -78,8 +77,8 @@ export function Navbar() {
               <Link key={link.href} href={link.href}
                 className={`relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                   pathname === link.href || pathname.startsWith(link.href + "/")
-                    ? "text-violet-300"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "text-violet-600 dark:text-violet-300"
+                    : "text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                 }`}>
                 <link.icon className="w-4 h-4" />
                 {link.label}
@@ -102,7 +101,7 @@ export function Navbar() {
                 onClick={() => setToolsOpen(!toolsOpen)}
                 onBlur={() => setTimeout(() => setToolsOpen(false), 150)}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                  toolsOpen ? "bg-violet-500/20 text-violet-300" : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                  toolsOpen ? "bg-violet-500/20 text-violet-600 dark:text-violet-300" : "text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
                 }`}>
                 <Zap className="w-4 h-4" />
                 Tools
@@ -116,17 +115,16 @@ export function Navbar() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -8, scale: 0.95 }}
                     transition={{ duration: 0.2 }}
-                    className="absolute top-full left-0 mt-2 w-56 rounded-xl shadow-2xl overflow-hidden z-50 border border-white/10 glass-strong"
-                    style={{ background: "rgba(10,10,15,0.97)" }}
+                    className="absolute top-full left-0 mt-2 w-56 rounded-xl shadow-2xl overflow-hidden z-50 border border-gray-200 dark:border-white/10 bg-white/95 dark:bg-[rgba(10,10,15,0.97)] backdrop-blur-xl"
                   >
                     {toolLinks.map((tool) => (
                       <Link key={tool.href} href={tool.href}
                         onClick={() => setToolsOpen(false)}
-                        className="flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors group">
+                        className="flex items-start gap-3 px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group">
                         <tool.icon className="w-4 h-4 text-violet-400 mt-0.5 flex-shrink-0" />
                         <div>
-                          <div className="text-sm font-medium group-hover:text-violet-300 transition-colors">{tool.label}</div>
-                          <div className="text-xs text-muted-foreground">{tool.desc}</div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-violet-600 dark:group-hover:text-violet-300 transition-colors">{tool.label}</div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">{tool.desc}</div>
                         </div>
                       </Link>
                     ))}
@@ -146,7 +144,7 @@ export function Navbar() {
                 {mounted && (
                   <button
                     onClick={toggleTheme}
-                    className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all"
+                    className="p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-all"
                     title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
                     aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
                     {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -163,7 +161,7 @@ export function Navbar() {
                     <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-background animate-pulse-glow" />
                   </div>
                   <div className="leading-tight">
-                    <div className="text-sm font-semibold text-foreground">{activeUser.name}</div>
+                    <div className="text-sm font-semibold text-gray-900 dark:text-white">{activeUser.name}</div>
                     <div className={`text-xs font-medium ${activeUser.role === "brand" ? "text-violet-400" : "text-cyan-400"}`}>
                       {activeUser.role === "brand" ? "Brand" : "Creator"}
                     </div>
@@ -179,7 +177,7 @@ export function Navbar() {
 
                 <button
                   onClick={handleLogout}
-                  className="p-2 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-all"
+                  className="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
                   title="Logout">
                   <LogOut className="w-4 h-4" />
                 </button>
@@ -190,7 +188,7 @@ export function Navbar() {
                 {mounted && (
                   <button
                     onClick={toggleTheme}
-                    className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all"
+                    className="p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-all"
                     title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
                     aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
                     {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -198,7 +196,7 @@ export function Navbar() {
                 )}
 
                 <Link href="/login"
-                  className="text-sm text-muted-foreground hover:text-foreground transition-colors px-3 py-2 rounded-lg hover:bg-white/5">
+                  className="text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5">
                   Sign In
                 </Link>
                 <Link href="/register"
@@ -211,7 +209,7 @@ export function Navbar() {
 
           {/* Mobile menu toggle */}
           <button
-            className="md:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5"
+            className="md:hidden p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
             onClick={() => setMobileOpen(!mobileOpen)}>
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -225,14 +223,13 @@ export function Navbar() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-t border-white/5"
-            style={{ background: "rgba(10,10,15,0.97)" }}
+            className="md:hidden border-t border-gray-200 dark:border-white/5 bg-white/95 dark:bg-[rgba(10,10,15,0.97)]"
           >
             <div className="px-4 py-3 space-y-1">
               {navLinks.map((link) => (
                 <Link key={link.href} href={link.href}
                   onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all">
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-all">
                   <link.icon className="w-4 h-4" />
                   {link.label}
                 </Link>
@@ -242,7 +239,7 @@ export function Navbar() {
               {mounted && (
                 <button
                   onClick={toggleTheme}
-                  className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all w-full"
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-all w-full"
                   aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
                   {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                   {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
@@ -250,7 +247,7 @@ export function Navbar() {
               )}
 
               {mounted && (activeUser || session) ? (
-                <div className="pt-3 border-t border-white/5 space-y-2">
+                <div className="pt-3 border-t border-gray-200 dark:border-white/5 space-y-2">
                   <div className="flex items-center gap-3 px-3 py-2">
                     <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center text-white font-bold">
                       {(activeUser?.name || session?.name || 'U').charAt(0)}
@@ -268,7 +265,7 @@ export function Navbar() {
                   </button>
                 </div>
               ) : (
-                <div className="pt-3 border-t border-white/5">
+                <div className="pt-3 border-t border-gray-200 dark:border-white/5">
                   <Link href="/login" onClick={() => setMobileOpen(false)}
                     className="block w-full text-center px-4 py-3 bg-gradient-to-r from-violet-600 to-violet-500 text-white rounded-xl text-sm font-semibold">
                     Sign In / Get Started
