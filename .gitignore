@@ -33,7 +33,3 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-# scripts (don't include in Next.js build)
-/scripts/**/*.ts
-!/scripts/tsconfig.json

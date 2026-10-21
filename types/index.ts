@@ -372,3 +372,28 @@ export interface Review {
   comment?: string;
   createdAt: string;
 }
+
+// ─── Conversational AI Types ───────────────────────────────────────────
+
+export interface ConversationMessage {
+  role: "user" | "assistant";
+  text: string;
+  timestamp: number;
+}
+
+// Strict allowlist of supported actions
+// NEVER execute: arbitrary URLs, model-generated code, actions outside this list
+export type DirectorAction = "open_discovery" | "prepare_brief" | "clear_draft" | "none";
+
+export interface CampaignDraft extends Partial<Brief> {
+  userStated?: string[];
+  assistantSuggestions?: string[];
+  unansweredQuestions?: string[];
+}
+
+export interface DirectorResponse {
+  reply: string;
+  action?: DirectorAction;
+  campaignDraft?: CampaignDraft;
+  error?: boolean;
+}

@@ -13,6 +13,7 @@ import HeroMeshGradient from "@/components/hero/HeroMeshGradient";
 import HeroAnimatedLines from "@/components/hero/HeroAnimatedLines";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { CreatorService } from "@/types";
+import CineGenDirector from "@/components/voice/CineGenDirector";
 
 const ParticleBackground = dynamic(() => import("@/components/ui/ParticleBackground"), { ssr: false });
 
@@ -362,78 +363,9 @@ export default function HomePage() {
               </motion.div>
             </div>
 
-            {/* Right: Single Large Hero Card (spans 5 columns on desktop) */}
+            {/* Right: CineGen Director Voice Assistant (spans 5 columns on desktop) */}
             <div className="lg:col-span-5 relative hidden lg:flex items-center justify-center">
-              <motion.div
-                className="card-3d relative w-full max-w-lg mx-auto z-20"
-                initial={{ opacity: 0, y: 40 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.2 }}
-                whileHover={{ scale: 1.02 }}
-                style={{ 
-                  perspective: '1000px',
-                  transform: 'rotateY(-8deg) rotateX(4deg)'
-                }}
-              >
-                <div className="relative rounded-3xl p-[2px] bg-gradient-to-br from-violet-500 via-cyan-500 to-violet-500 gradient-border-animated shadow-2xl shadow-violet-500/30">
-                  <div className="glass rounded-3xl p-8 backdrop-blur-xl bg-background/80">
-                    {/* Avatar section */}
-                    <div className="flex items-start gap-4 mb-6">
-                      <img
-                        src="https://picsum.photos/seed/shaistha/200/200"
-                        alt="Shaistha Shaik"
-                        className="w-20 h-20 rounded-2xl border-2 border-violet-400/40 object-cover shadow-xl"
-                      />
-                      <div className="flex-1">
-                        <h3 className="font-display text-2xl font-bold text-white mb-1">
-                          Shaistha Shaik
-                        </h3>
-                        <p className="text-violet-300/90 text-sm mb-2">AI Filmmaker</p>
-                        <div className="flex items-center gap-3 text-xs">
-                          <span className="flex items-center gap-1 text-amber-400 font-semibold">
-                            <Star className="w-3.5 h-3.5 fill-amber-400" />
-                            4.9
-                          </span>
-                          <span className="text-muted-foreground">28 Projects</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Specialty/bio */}
-                    <p className="text-sm text-muted-foreground/90 mb-4 leading-relaxed">
-                      Cinematic visual storyteller crafting epic brand narratives with cutting-edge AI tools.
-                    </p>
-
-                    {/* Tool badges */}
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {["Runway", "Kling", "Midjourney"].map((tool) => (
-                        <span
-                          key={tool}
-                          className="text-xs px-3 py-1.5 rounded-lg bg-violet-500/20 text-violet-200 border border-violet-400/30 font-medium"
-                        >
-                          {tool}
-                        </span>
-                      ))}
-                    </div>
-
-                    {/* CTA */}
-                    <Link
-                      href="/creators/creator-001"
-                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-violet-600 to-cyan-600 text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-all shadow-lg w-full justify-center"
-                    >
-                      View Profile <ArrowRight className="w-4 h-4" />
-                    </Link>
-                  </div>
-                </div>
-
-                {/* Small floating badges near the card */}
-                <div className="absolute -top-3 -right-3">
-                  <HeroFloatingBadge icon="✓" text="Verified" color="violet" delay={0.5} />
-                </div>
-                <div className="absolute -bottom-3 -left-3">
-                  <HeroFloatingBadge icon="★" text="Top Rated" color="amber" delay={1} />
-                </div>
-              </motion.div>
+              <CineGenDirector />
             </div>
 
           </div>

@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles, Wand2, ChevronRight, X, Plus, Info, CheckCircle,
@@ -76,10 +76,11 @@ function computeCompleteness(form: FormData): number {
   return Math.round((filled / checks.length) * 100);
 }
 
-export default function NewBriefPage() {
+function NewBriefPageContent() {
   const { session } = useSession();
   const { saveBrief } = useBriefs();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [mode, setMode] = useState<"ai" | "manual">("ai");
   const [idea, setIdea] = useState("");
@@ -89,6 +90,31 @@ export default function NewBriefPage() {
   const [published, setPublished] = useState<string | null>(null);
   const [newKeyword, setNewKeyword] = useState("");
   const [newRegion, setNewRegion] = useState("");
+
+  // Check for voice draft on mount
+  useEffect(() => {
+    const fromVoice = searchParams.get("from");
+    if (fromVoice === "voice") {
+      const voiceDraft = sessionStorage.getItem("cinegen_voice_draft");
+      if (voiceDraft) {
+        try {
+          const draft = JSON.parse(voiceDraft);
+          setForm((prev) => ({
+            ...prev,
+            ...draft,
+            generatedByAI: true,
+            rawIdea: draft.rawIdea || "Generated via voice",
+          }));
+          setMode("manual");
+          toast.success("✨ Voice draft loaded!");
+          // Clear the draft from storage
+          sessionStorage.removeItem("cinegen_voice_draft");
+        } catch (e) {
+          console.error("Failed to load voice draft:", e);
+        }
+      }
+    }
+  }, [searchParams]);
 
   const setField = <K extends keyof FormData>(key: K, value: FormData[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -625,5 +651,18 @@ export default function NewBriefPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+
+export default function NewBriefPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-violet-400" />
+      </div>
+    }>
+      <NewBriefPageContent />
+    </Suspense>
   );
 }
