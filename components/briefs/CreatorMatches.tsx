@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Star, 
@@ -25,19 +25,24 @@ export function CreatorMatches({ briefId }: CreatorMatchesProps) {
   const [matches, setMatches] = useState<CreatorMatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryAfter, setRetryAfter] = useState<number | null>(null);
   const [expandedCreators, setExpandedCreators] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    fetchMatches();
-  }, [briefId]);
-
-  const fetchMatches = async () => {
+  const fetchMatches = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
+      setRetryAfter(null);
       const res = await fetch(`/api/briefs/${briefId}/matches`, {
         method: 'POST',
       });
+
+      if (res.status === 429) {
+        const data = await res.json();
+        const retryMs = data.retryAfterMs || 60000;
+        setRetryAfter(Math.ceil(retryMs / 1000));
+        throw new Error(`Rate limit exceeded. Please wait ${Math.ceil(retryMs / 1000)} seconds and try again.`);
+      }
 
       if (!res.ok) {
         const data = await res.json();
@@ -51,7 +56,28 @@ export function CreatorMatches({ briefId }: CreatorMatchesProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [briefId]);
+
+  useEffect(() => {
+    fetchMatches();
+  }, [fetchMatches]);
+
+  // Countdown timer for rate limit retry
+  useEffect(() => {
+    if (retryAfter === null || retryAfter <= 0) return;
+
+    const timer = setInterval(() => {
+      setRetryAfter(prev => {
+        if (prev === null || prev <= 1) {
+          clearInterval(timer);
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [retryAfter]);
 
   const toggleExpand = (creatorId: string) => {
     setExpandedCreators(prev => {
@@ -96,11 +122,17 @@ export function CreatorMatches({ briefId }: CreatorMatchesProps) {
           <div className="flex-1">
             <h3 className="font-semibold text-red-300 mb-1">Failed to Load Matches</h3>
             <p className="text-sm text-muted-foreground mb-3">{error}</p>
+            {retryAfter && (
+              <p className="text-xs text-amber-400 mb-3">
+                Please wait {retryAfter} seconds before retrying
+              </p>
+            )}
             <button
               onClick={fetchMatches}
-              className="text-sm px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-lg hover:bg-red-500/20 transition-colors"
+              disabled={retryAfter !== null}
+              className="text-sm px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-lg hover:bg-red-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Retry
+              {retryAfter ? `Retry in ${retryAfter}s` : 'Retry'}
             </button>
           </div>
         </div>

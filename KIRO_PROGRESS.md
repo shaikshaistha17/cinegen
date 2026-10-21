@@ -391,11 +391,11 @@ Part 2 can now safely implement:
 #### 1. AI-Assisted Brief Drafting
 **Files**: `lib/ai/briefDrafter.ts`, `app/api/brief/route.ts`
 - Gemini API integration with 10s timeout per attempt
-- Max 2 retry attempts (initial + 1 retry)
+- Max 2 total attempts (initial call + 1 retry on failure)
 - Output validation: checks for required fields (campaignTitle, objective, contentType)
 - Graceful fallback to rule-based generation on any failure
 - Never simulates successful AI response
-- Preserves user input in all cases via `preservedIdea` field
+- Preserves user input in all cases via `preservedIdea` field (now included in API response)
 - Returns source label: `gemini` | `fallback` | `deterministic`
 
 #### 2. Brief Stress Testing (6 New Deterministic Checks)
@@ -443,7 +443,10 @@ Part 2 can now safely implement:
 - In-memory sliding window implementation
 - Default: 10 requests per 60,000ms per userId+endpoint
 - Applied to `/api/brief` (drafting) and `/api/briefs/[id]/matches` (matching)
+- Scoped to AI-powered endpoints that consume external API quota
+- Standard CRUD endpoints rely on database RLS and Supabase's built-in protections
 - Auto-evicts old timestamps outside window
+- UI feedback: 429 responses show countdown timer with retry delay
 
 **Security Measures**:
 - All API keys server-side only (never exposed to client)

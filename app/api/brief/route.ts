@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
       brief: result.brief,
       source: result.source,
       aiLabeled: result.aiLabeled,
+      preservedIdea: result.preservedIdea,
     });
   } catch (err) {
     console.error('Brief API error:', err);

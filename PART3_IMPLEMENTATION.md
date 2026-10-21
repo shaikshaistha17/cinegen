@@ -201,14 +201,30 @@ GEMINI_API_KEY=xxxxx  # If not set, uses deterministic fallback for brief drafti
 - **Defaults**: 10 requests per 60,000ms
 - **Cleanup**: Automatically evicts timestamps outside window
 - **Endpoints Protected**:
-  - `/api/brief`: 10 req/min for brief drafting
-  - `/api/briefs/[id]/matches`: 10 req/min for creator matching
+  - `/api/brief`: 10 req/min for AI-assisted brief drafting
+  - `/api/briefs/[id]/matches`: 10 req/min for AI-assisted creator matching
+
+**Note on Limited Scope**:
+Rate limiting is applied specifically to AI-powered endpoints that:
+1. Consume external API quota (Gemini API calls)
+2. Involve computationally intensive operations (matching algorithms)
+3. Process user-generated content through AI systems
+
+Standard CRUD endpoints (/api/briefs, /api/proposals, etc.) rely on:
+- Database-level RLS policies for authorization
+- Supabase's built-in connection pooling and rate limiting
+- CloudFlare or similar edge protection in production deployment
+
+For production deployment with user-facing traffic, implement:
+- CloudFlare rate limiting at edge (recommended)
+- Database-backed rate limiter shared across server instances
+- Per-endpoint rate limits based on operation cost
 
 #### Timeouts & Retries
 **Brief Drafting**:
 - Gemini call: 10s timeout via `AbortController`
-- Max 2 attempts (initial + 1 retry)
-- Each attempt has own 10s timeout
+- Max 2 total attempts (initial call + 1 retry on failure)
+- Each attempt has its own independent 10s timeout
 
 **Creator Matching AI Note**:
 - Gemini call: 10s timeout
@@ -312,7 +328,29 @@ GEMINI_API_KEY=xxxxx  # If not set, uses deterministic fallback for brief drafti
 ### 8. Rate Limiting
 **Setup**: Send 11 requests to `/api/brief` within 1 minute from same session  
 **Expected**: 11th request returns HTTP 429 with `{ error: "Too many requests...", retryAfterMs: <number> }`  
-**Verification**: Check response status and retry-after value
+**Verification**: 
+1. Open browser console
+2. Run test script:
+   ```js
+   (async () => {
+     for (let i = 0; i < 11; i++) {
+       const res = await fetch('/api/brief', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ idea: `test idea ${i}` })
+       });
+       const data = await res.json();
+       console.log(`Request ${i + 1}: ${res.status}`, data);
+       if (res.status === 429) {
+         console.log(`Rate limited! Retry after ${data.retryAfterMs}ms`);
+         break;
+       }
+     }
+   })();
+   ```
+3. Confirm 11th request (or earlier if within 60s window of previous tests) returns 429
+4. Confirm `retryAfterMs` is present and reasonable (< 60000ms)
+5. UI should display countdown timer: "Retry in Xs"
 
 ---
 
@@ -353,9 +391,16 @@ GEMINI_API_KEY=xxxxx  # If not set, uses deterministic fallback for brief drafti
 - Does not parse revision count or terms (e.g., "unlimited revisions" vs "2 revisions")
 - Only a suggestion, not enforced
 
-### 8. No Email Notifications
+### 5. No Email Notifications
 - Brands must manually check brief detail page for matches
 - No real-time alerts when new creators match
+
+### 6. Rate Limit UI Feedback
+- CreatorMatches component handles 429 responses with specific error messages
+- Displays countdown timer for retry delay
+- Retry button disabled until timer expires
+- Brief drafting API returns preservedIdea field to prevent data loss
+- UI should preserve user's original input text when showing rate limit errors
 
 ### 9. Mocked vs Real Provider Tests
 - **Mocked**: Rate limiter logic, scoring algorithm, portfolio matching
