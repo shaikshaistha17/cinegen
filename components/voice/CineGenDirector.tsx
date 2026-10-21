@@ -817,7 +817,7 @@ export default function CineGenDirector() {
           </p>
           
           {/* Supporting text */}
-          <p className="text-center text-sm text-muted-foreground/90 mb-6">
+          <p className="text-center text-sm text-gray-300 mb-6">
             Describe your campaign. Shape your brief.
           </p>
           
@@ -1013,24 +1013,34 @@ export default function CineGenDirector() {
                 )}
                 
                 {(campaignDraft.budgetMin !== undefined || campaignDraft.budgetMax !== undefined) && (
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-xs text-gray-400 block mb-1">Budget Min</label>
-                      <input
-                        type="number"
-                        value={campaignDraft.budgetMin || ''}
-                        onChange={(e) => setCampaignDraft(prev => ({ ...prev, budgetMin: parseInt(e.target.value) || 0 }))}
-                        className="w-full px-3 py-2 bg-background/50 border border-white/10 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-cyan-400"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-400 block mb-1">Budget Max</label>
-                      <input
-                        type="number"
-                        value={campaignDraft.budgetMax || ''}
-                        onChange={(e) => setCampaignDraft(prev => ({ ...prev, budgetMax: parseInt(e.target.value) || 0 }))}
-                        className="w-full px-3 py-2 bg-background/50 border border-white/10 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-cyan-400"
-                      />
+                  <div>
+                    <label className="text-xs text-gray-400 block mb-1">
+                      Budget (USD)
+                      {campaignDraft.originalCurrency && (
+                        <span className="ml-1 text-violet-400 font-normal">
+                          (converted from {campaignDraft.originalCurrency})
+                        </span>
+                      )}
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <input
+                          type="number"
+                          placeholder="Min"
+                          value={campaignDraft.budgetMin || ''}
+                          onChange={(e) => setCampaignDraft(prev => ({ ...prev, budgetMin: parseInt(e.target.value) || 0 }))}
+                          className="w-full px-3 py-2 bg-background/50 border border-white/10 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-cyan-400"
+                        />
+                      </div>
+                      <div>
+                        <input
+                          type="number"
+                          placeholder="Max"
+                          value={campaignDraft.budgetMax || ''}
+                          onChange={(e) => setCampaignDraft(prev => ({ ...prev, budgetMax: parseInt(e.target.value) || 0 }))}
+                          className="w-full px-3 py-2 bg-background/50 border border-white/10 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-cyan-400"
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1041,6 +1051,29 @@ export default function CineGenDirector() {
                     <ul className="text-xs text-gray-300 list-disc list-inside space-y-1">
                       {campaignDraft.unansweredQuestions.map((q, i) => (
                         <li key={i}>{q}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {/* User-stated vs Assistant Suggestions Separation */}
+                {campaignDraft.userStated && campaignDraft.userStated.length > 0 && (
+                  <div>
+                    <label className="text-xs font-semibold text-green-400 block mb-1">You said:</label>
+                    <ul className="text-xs text-gray-300 list-disc list-inside space-y-1">
+                      {campaignDraft.userStated.map((item, i) => (
+                        <li key={i}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {campaignDraft.assistantSuggestions && campaignDraft.assistantSuggestions.length > 0 && (
+                  <div>
+                    <label className="text-xs font-semibold text-violet-400 block mb-1">Suggested:</label>
+                    <ul className="text-xs text-gray-300 list-disc list-inside space-y-1">
+                      {campaignDraft.assistantSuggestions.map((item, i) => (
+                        <li key={i}>{item}</li>
                       ))}
                     </ul>
                   </div>
@@ -1227,14 +1260,14 @@ export default function CineGenDirector() {
           
           {/* Browser support notice */}
           {!isSupported && state === "off" && !typingMode && (
-            <p className="text-xs text-center text-muted-foreground mt-4">
+            <p className="text-xs text-center text-gray-300 mt-4">
               Voice features require Chrome or Edge. <button onClick={handleTypeInstead} className="text-cyan-400 hover:underline">Type instead</button>
             </p>
           )}
           
           {/* Privacy notice */}
           {state === "off" && isSupported && !typingMode && (
-            <p className="text-xs text-center text-muted-foreground/70 mt-4">
+            <p className="text-xs text-center text-gray-300 mt-4">
               Voice recognition processes audio through your browser&apos;s speech service. No audio is stored.
             </p>
           )}

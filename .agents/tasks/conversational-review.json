@@ -1,0 +1,42 @@
+{
+  "verdict": "CHANGES_REQUESTED",
+  "findings": [
+    {
+      "id": "BLOCKER-1",
+      "severity": "blocker",
+      "title": "Missing User-Stated vs Suggestions Separation",
+      "location": "components/voice/CineGenDirector.tsx:941-1040",
+      "requirement": "Requirement 4: Separate user-stated from assistant suggestions",
+      "expected": "Draft card should show 'You said:' section with userStated array and 'Suggested:' section with assistantSuggestions array",
+      "actual": "Draft card shows only merged fields (campaignTitle, objective, contentType, etc.) with no attribution of what user explicitly stated vs what AI inferred",
+      "consequence": "Users cannot distinguish their explicit requirements from AI inferences, violating transparency requirement and reducing trust in the system",
+      "evidence": "Types define userStated and assistantSuggestions arrays (types/index.ts:255-256) but component lines 941-1040 do not render these arrays",
+      "fix": "Add UI sections rendering campaignDraft.userStated and campaignDraft.assistantSuggestions as separate labeled lists before or after the editable fields"
+    },
+    {
+      "id": "BLOCKER-2",
+      "severity": "blocker",
+      "title": "Currency Not Preserved (INR/Amounts)",
+      "location": "types/index.ts:150-175 (Brief interface); components/voice/CineGenDirector.tsx:999-1018 (budget inputs)",
+      "requirement": "Requirement 4: Preserve INR/amounts correctly",
+      "expected": "Draft card should show currency dropdown (INR/USD/etc), preserve user's currency choice, and pass to brief builder",
+      "actual": "Brief type has no currency field, draft card shows only budgetMin/budgetMax number inputs without currency selector",
+      "consequence": "User says '15000 rupees' but currency information is lost between voice capture and brief creation, may default incorrectly to USD causing 100x budget error",
+      "evidence": "Brief interface (types/index.ts:150-175) has budgetMin/budgetMax but no currency field; draft card (lines 999-1018) has number inputs only; system prompt (app/api/director/chat/route.ts:121) says 'Preserve currency (INR if mentioned, USD default)' but no field to preserve it in",
+      "fix": "Add currency field to Brief type and CampaignDraft, add currency dropdown in draft card UI, update brief builder to handle currency field, OR document that system is USD-only with INR->USD conversion"
+    },
+    {
+      "id": "BLOCKER-3",
+      "severity": "blocker",
+      "title": "Contrast Improvement Not Applied",
+      "location": "components/voice/CineGenDirector.tsx:748,863,1182,1187",
+      "requirement": "Requirement 7: Improve the current panel's muted text contrast",
+      "expected": "Muted text should use gray-300 minimum for WCAG AA compliance (4.5:1 contrast ratio)",
+      "actual": "Code still uses text-muted-foreground and text-gray-400 classes; verification report claims 'gray-300 minimum (was gray-500)' but code does not explicitly use gray-300",
+      "consequence": "If muted-foreground resolves to gray-500 or lighter, contrast ratio may fail WCAG AA (4.5:1), reducing readability for users with vision impairments",
+      "evidence": "Line 748: text-muted-foreground/90; Line 863: text-gray-400; Line 1182: text-muted-foreground; Line 1187: text-muted-foreground/70; Verification report line 'Gray-300 minimum (was gray-500)' contradicts actual code",
+      "fix": "Replace text-muted-foreground with text-gray-300 for body text (lines 748, 1182, 1187) OR verify that theme's muted-foreground CSS variable is set to gray-300 and update verification report to document actual resolved value"
+    }
+  ],
+  "reviewDoc": "/Users/shaisthashaik/Desktop/Cinegen/cinegen/.agents/tasks/conversational-review.md"
+}

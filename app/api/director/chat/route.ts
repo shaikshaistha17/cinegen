@@ -118,11 +118,19 @@ When user explicitly says they want to "turn this into a brief" or is clearly re
 - Include "assistantSuggestions" array: things you inferred
 - Include "unansweredQuestions" array: critical missing details
 
+CURRENCY HANDLING (CRITICAL):
+- All budgets MUST be in USD
+- If user mentions INR/rupees, convert to USD using rate ~83 INR = 1 USD
+- Set "originalCurrency" field to preserve transparency, e.g., "INR ₹15,000-20,000"
+- Examples:
+  * "15000 rupees" → budgetMin: 180, originalCurrency: "INR ₹15,000"
+  * "20 thousand rupees" → budgetMin: 240, originalCurrency: "INR ₹20,000"
+  * "$500" → budgetMin: 500, originalCurrency: null (already USD)
+- Round converted amounts to nearest 10 USD for readability
+
 IMPORTANT:
 - First message with empty history: respond with greeting
 - Never invent missing information
-- Preserve currency (INR if mentioned, USD default)
-- Keep budget amounts exact (15000 rupees = budgetMin: 15000, not converted)
 - When correcting, change ONLY the mentioned field
 - Confirm before clearing a draft
 
@@ -159,8 +167,9 @@ Return ONLY valid JSON (no markdown, no code fences) with this structure:
     "resolution": "1080p" | "4K" | "8K",
     "quantity": number,
     "toolsPreferred": array of tools,
-    "budgetMin": number,
-    "budgetMax": number,
+    "budgetMin": number (in USD),
+    "budgetMax": number (in USD),
+    "originalCurrency": string or null (e.g., "INR ₹15,000-20,000" if user mentioned INR),
     "deadline": ISO date string,
     "commercialUse": {...},
     "negativeKeywords": string[],

@@ -389,6 +389,7 @@ export interface CampaignDraft extends Partial<Brief> {
   userStated?: string[];
   assistantSuggestions?: string[];
   unansweredQuestions?: string[];
+  originalCurrency?: string; // e.g., "INR 15000-20000" for display transparency
 }
 
 export interface DirectorResponse {
