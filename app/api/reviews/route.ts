@@ -1,161 +1,192 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase";
-
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const creatorId = searchParams.get("creatorId");
-
-    if (!creatorId) {
-      return NextResponse.json(
-        { error: "creatorId is required" },
-        { status: 400 }
-      );
-    }
-
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from("reviews")
-      .select("*, brand:brand_profiles(company_name)")
-      .eq("creator_id", creatorId)
-      .order("created_at", { ascending: false });
-
-    if (error) throw error;
-
-    return NextResponse.json({ reviews: data || [] });
-  } catch (error: any) {
-    console.error("Error fetching reviews:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to fetch reviews" },
-      { status: 500 }
-    );
-  }
-}
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = createClient();
+
+    // Get authenticated user
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
-    const { briefId, creatorId, rating, comment } = body;
+    const { agreementId, briefId, creatorId, rating, comment } = body;
 
-    // Validate input
-    if (!briefId || !creatorId || !rating) {
+    // Validate required fields
+    if (!agreementId) {
       return NextResponse.json(
-        { error: "briefId, creatorId, and rating are required" },
+        { error: 'agreementId is required' },
         { status: 400 }
       );
     }
 
-    if (rating < 1 || rating > 5) {
+    if (!rating || rating < 1 || rating > 5) {
       return NextResponse.json(
-        { error: "Rating must be between 1 and 5" },
+        { error: 'Rating must be between 1 and 5' },
         { status: 400 }
       );
     }
 
-    // Get brand profile
-    const { data: brandProfile, error: brandError } = await supabase
-      .from("brand_profiles")
-      .select("id")
-      .eq("user_id", user.id)
+    // Fetch agreement to validate
+    const { data: agreement, error: agreementError } = await supabase
+      .from('agreements')
+      .select(`
+        id,
+        brief_id,
+        creator_id,
+        brand_id,
+        brand:brand_profiles!inner(user_id)
+      `)
+      .eq('id', agreementId)
       .single();
 
-    if (brandError) {
+    if (agreementError || !agreement) {
       return NextResponse.json(
-        { error: "Brand profile not found" },
+        { error: 'Agreement not found' },
         { status: 404 }
       );
     }
 
-    // Check if brand hired this creator for this brief
-    const { data: proposal, error: proposalError } = await supabase
-      .from("proposals")
-      .select("id")
-      .eq("brief_id", briefId)
-      .eq("creator_id", creatorId)
-      .eq("status", "Accepted")
-      .single();
-
-    if (proposalError || !proposal) {
+    // Verify user is brand
+    const brandUserId = (agreement as any).brand.user_id;
+    if (user.id !== brandUserId) {
       return NextResponse.json(
-        { error: "You can only review creators you have hired" },
+        { error: 'Forbidden - Only the brand can submit reviews' },
         { status: 403 }
       );
     }
 
-    // Check if brand already reviewed this creator for this brief
-    const { data: existing, error: existingError } = await supabase
-      .from("reviews")
-      .select("id")
-      .eq("brief_id", briefId)
-      .eq("creator_id", creatorId)
-      .eq("brand_id", brandProfile.id)
+    // Check if agreement is complete (has at least one approved delivery)
+    const { data: approvedDelivery } = await supabase
+      .from('deliveries')
+      .select('id')
+      .eq('agreement_id', agreementId)
+      .not('brand_approved_at', 'is', null)
+      .limit(1)
       .single();
 
-    if (existing) {
+    if (!approvedDelivery) {
       return NextResponse.json(
-        { error: "You have already reviewed this creator for this brief" },
-        { status: 409 }
+        { error: 'Cannot review - No approved deliveries found for this agreement' },
+        { status: 400 }
       );
     }
 
-    // Submit review
-    const { data, error } = await supabase
-      .from("reviews")
+    // Check for existing review
+    const { data: existingReview } = await supabase
+      .from('reviews')
+      .select('id')
+      .eq('agreement_id', agreementId)
+      .maybeSingle();
+
+    if (existingReview) {
+      return NextResponse.json(
+        { error: 'Review already submitted for this agreement' },
+        { status: 400 }
+      );
+    }
+
+    // Insert review
+    const { data: review, error: reviewError } = await supabase
+      .from('reviews')
       .insert({
-        brief_id: briefId,
-        creator_id: creatorId,
-        brand_id: brandProfile.id,
+        agreement_id: agreementId,
+        brief_id: agreement.brief_id,
+        creator_id: agreement.creator_id,
+        brand_id: agreement.brand_id,
         rating,
-        comment: comment || "",
+        comment: comment || null,
       })
       .select()
       .single();
 
-    if (error) throw error;
+    if (reviewError) throw reviewError;
 
-    // Update creator's average rating
-    const { data: reviews } = await supabase
-      .from("reviews")
-      .select("rating")
-      .eq("creator_id", creatorId);
+    // Update creator stats
+    const { data: creatorProfile } = await supabase
+      .from('creator_profiles')
+      .select('stats')
+      .eq('id', agreement.creator_id)
+      .single();
 
-    if (reviews && reviews.length > 0) {
-      const sum = reviews.reduce((acc: number, r: any) => acc + r.rating, 0);
-      const average = sum / reviews.length;
+    if (creatorProfile) {
+      const currentStats = creatorProfile.stats as any;
+      const projectsCompleted = (currentStats.projectsCompleted || 0) + 1;
+      
+      // Fetch all reviews for this creator to recalculate average
+      const { data: allReviews } = await supabase
+        .from('reviews')
+        .select('rating')
+        .eq('creator_id', agreement.creator_id);
 
-      // Update creator profile stats
-      const { data: profile } = await supabase
-        .from("creator_profiles")
-        .select("stats")
-        .eq("id", creatorId)
-        .single();
-
-      if (profile) {
-        const updatedStats = {
-          ...profile.stats,
-          avgRating: average,
-        };
-        await supabase
-          .from("creator_profiles")
-          .update({ stats: updatedStats })
-          .eq("id", creatorId);
+      let avgRating = 0;
+      if (allReviews && allReviews.length > 0) {
+        const totalRating = allReviews.reduce((sum: number, r: any) => sum + r.rating, 0);
+        avgRating = Math.round((totalRating / allReviews.length) * 10) / 10;
       }
+
+      // Update creator stats
+      await supabase
+        .from('creator_profiles')
+        .update({
+          stats: {
+            ...currentStats,
+            projectsCompleted,
+            avgRating,
+          },
+        })
+        .eq('id', agreement.creator_id);
     }
 
-    return NextResponse.json({ review: data }, { status: 201 });
+    return NextResponse.json({ review }, { status: 201 });
   } catch (error: any) {
-    console.error("Error submitting review:", error);
+    console.error('Error creating review:', error);
     return NextResponse.json(
-      { error: error.message || "Failed to submit review" },
+      { error: error.message || 'Failed to create review' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = createClient();
+    const { searchParams } = new URL(request.url);
+    
+    const creatorId = searchParams.get('creatorId');
+    const brandId = searchParams.get('brandId');
+
+    let query = supabase
+      .from('reviews')
+      .select(`
+        *,
+        creator:creator_profiles!inner(handle, user:users!inner(name)),
+        brand:brand_profiles!inner(company_name)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (creatorId) {
+      query = query.eq('creator_id', creatorId);
+    }
+    
+    if (brandId) {
+      query = query.eq('brand_id', brandId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+
+    return NextResponse.json({ reviews: data || [] });
+  } catch (error: any) {
+    console.error('Error fetching reviews:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to fetch reviews' },
       { status: 500 }
     );
   }

@@ -28,6 +28,8 @@ export type LicenseTier =
 
 export type BriefStatus = "Draft" | "Open" | "In Review" | "Hired" | "In Production" | "Delivered";
 
+export type AgreementStatus = "draft" | "pending_creator" | "pending_brand" | "active" | "completed";
+
 export type ProposalStatus = "Pending" | "Shortlisted" | "Accepted" | "Rejected";
 
 export type EngagementStage =
@@ -315,12 +317,58 @@ export interface ProjectMessage {
   id: string;
   agreementId: string;
   senderId: string;
-  messageType: 'text' | 'feedback' | 'scope_change';
+  senderName?: string;
+  senderRole?: UserRole;
+  messageType: 'comment' | 'revision_request' | 'scope_change_request';
   content: string;
   deliveryVersion?: number;
   videoTimestampSeconds?: number;
   proposedChanges?: any;
   changeAcceptedByCreator: string | null;
   changeAcceptedByBrand: string | null;
+  createdAt: string;
+}
+
+export interface ScopeChange {
+  id: string;
+  agreementId: string;
+  messageId: string;
+  previousVersion: number;
+  newVersion: number;
+  changesSummary: string;
+  priceDelta?: number;
+  deadlineDeltaDays?: number;
+  creatorAcceptedAt: string | null;
+  brandAcceptedAt: string | null;
+  bothAccepted: boolean;
+  appliedAt: string | null;
+  createdAt: string;
+}
+
+export interface PassportEvent {
+  type: string;
+  timestamp: string;
+  data: any;
+}
+
+export interface ProductionPassport {
+  agreement: Agreement;
+  brief: Brief;
+  proposal: Proposal;
+  deliveries: Delivery[];
+  messages: ProjectMessage[];
+  scopeChanges: ScopeChange[];
+  history: PassportEvent[];
+  review?: any;
+}
+
+export interface Review {
+  id: string;
+  briefId: string;
+  agreementId?: string;
+  creatorId: string;
+  brandId: string;
+  rating: number;
+  comment?: string;
   createdAt: string;
 }
