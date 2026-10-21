@@ -50,6 +50,12 @@ export default function CineGenDirector() {
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
   const [showVoicePreview, setShowVoicePreview] = useState(false);
   const [showFullConversation, setShowFullConversation] = useState(false);
+  const [showMicCheck, setShowMicCheck] = useState(false);
+  const [micCheckStream, setMicCheckStream] = useState<MediaStream | null>(null);
+  const [micLevel, setMicLevel] = useState(0);
+  const micCheckAnimationRef = useRef<number | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
   
   // Refs
   const recognitionRef = useRef<any>(null);
@@ -59,6 +65,7 @@ export default function CineGenDirector() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const timingRef = useRef<TimingMetrics>({});
   const errorRetryCountRef = useRef(0);
+  const startRecognitionRef = useRef<() => void>(() => {});
   
   // Check browser support
   const [isSupported, setIsSupported] = useState(false);
@@ -164,8 +171,8 @@ export default function CineGenDirector() {
     }
     
     utterance.onstart = () => {
-      setState("speaking");
-      // Pause recognition during speech
+      console.log("[Speech] Started");
+      // Stop recognition during speech
       if (recognitionRef.current) {
         try {
           recognitionRef.current.stop();
@@ -173,30 +180,49 @@ export default function CineGenDirector() {
           // Already stopped
         }
       }
+      setState((prevState) => {
+        console.log(`[State] ${prevState} → speaking (timestamp: ${new Date().toISOString()})`);
+        return "speaking";
+      });
     };
     
     utterance.onend = () => {
+      console.log("[Speech] Ended");
       // Resume listening if still in active session and not in typing mode
-      if (state !== "off" && !isProcessingRef.current && !typingMode) {
-        setState("awaiting_wake");
-        startRecognition();
+      // Keep wake word detected since user already woke the assistant
+      if (recognitionRef.current && !typingMode) {
+        setState((prevState) => {
+          console.log(`[State] ${prevState} → listening (timestamp: ${new Date().toISOString()})`);
+          return "listening";
+        });
+        startRecognitionRef.current();
       } else if (typingMode) {
-        setState("off");
+        setState((prevState) => {
+          console.log(`[State] ${prevState} → off (timestamp: ${new Date().toISOString()})`);
+          return "off";
+        });
       }
     };
     
     utterance.onerror = () => {
-      if (state !== "off" && !typingMode) {
-        setState("awaiting_wake");
-        startRecognition();
+      console.log("[Speech] Error");
+      if (recognitionRef.current && !typingMode) {
+        setState((prevState) => {
+          console.log(`[State] ${prevState} → listening (timestamp: ${new Date().toISOString()})`);
+          return "listening";
+        });
+        startRecognitionRef.current();
       } else if (typingMode) {
-        setState("off");
+        setState((prevState) => {
+          console.log(`[State] ${prevState} → off (timestamp: ${new Date().toISOString()})`);
+          return "off";
+        });
       }
     };
     
     synthRef.current = utterance;
     window.speechSynthesis.speak(utterance);
-  }, [isMuted, state, typingMode, selectedVoice]);
+  }, [isMuted, typingMode, selectedVoice]);
   
   // Execute action with safety checks
   const executeAction = useCallback((action: DirectorAction, payload?: any) => {
@@ -368,6 +394,7 @@ export default function CineGenDirector() {
     recognition.lang = "en-US";
     
     recognition.onstart = () => {
+      console.log("[Recognition] Started");
       if (!timingRef.current.recognitionReadyTime) {
         timingRef.current.recognitionReadyTime = performance.now();
         
@@ -379,32 +406,49 @@ export default function CineGenDirector() {
       }
     };
     
+    recognition.onaudiostart = () => {
+      console.log("[Recognition] Audio capture started");
+    };
+    
+    recognition.onspeechstart = () => {
+      console.log("[Recognition] Speech detected");
+    };
+    
     recognition.onresult = (event: any) => {
       let interimTranscript = "";
       let finalTranscript = "";
+      let hasInterim = false;
+      let hasFinal = false;
       
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
         if (event.results[i].isFinal) {
           finalTranscript += transcript + " ";
+          hasFinal = true;
         } else {
           interimTranscript += transcript;
+          hasInterim = true;
         }
       }
+      
+      console.log(`[Recognition] Result: interim=${hasInterim}, final=${hasFinal}`);
       
       const currentText = (finalTranscript + interimTranscript).trim();
       const currentTextLower = currentText.toLowerCase();
       
-      // Show interim transcription for feedback
+      // Show interim transcription for immediate feedback
       setTranscript(currentText);
       
-      // Check for wake word
-      if (state === "awaiting_wake" && !wakeWordDetectedRef.current) {
+      // Check for wake word (only if we haven't detected it yet)
+      if (!wakeWordDetectedRef.current) {
         if (isWakePhrase(currentTextLower)) {
           wakeWordDetectedRef.current = true;
           timingRef.current.wakeDetectedTime = performance.now();
           
-          setState("listening");
+          setState((prevState) => {
+            console.log(`[State] ${prevState} → listening (timestamp: ${new Date().toISOString()})`);
+            return "listening";
+          });
           
           // Extract command after wake phrase if present in same utterance
           const wakePatterns = ['hey cinegen', 'hey cine gen', 'hey cine-gen', 'hey cin gen', 'hey sinegen', 'hey sine gen'];
@@ -426,7 +470,6 @@ export default function CineGenDirector() {
           // If there's a command after the wake phrase, process it immediately
           if (commandAfterWake.length > 5) {
             setTranscript(commandAfterWake);
-            // Process the command
             timingRef.current.commandEndTime = performance.now();
             processCampaignIdea(commandAfterWake);
           } else {
@@ -437,14 +480,40 @@ export default function CineGenDirector() {
         }
       }
       
-      // Process campaign idea when listening
-      if (state === "listening" && finalTranscript.trim() && !isProcessingRef.current) {
+      // Process campaign idea when listening and wake word already detected
+      if (wakeWordDetectedRef.current && finalTranscript.trim() && !isProcessingRef.current) {
         const cleanIdea = finalTranscript.trim();
         
         // Handle simple local commands without API call
         const lowerIdea = cleanIdea.toLowerCase();
         if (lowerIdea === 'stop' || lowerIdea === 'cancel' || lowerIdea === 'quit') {
-          handleStop();
+          // Stop inline
+          if (recognitionRef.current) {
+            try {
+              recognitionRef.current.stop();
+            } catch (e) {
+              // Already stopped
+            }
+            recognitionRef.current = null;
+          }
+          if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+          }
+          if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+          }
+          setState((prevState) => {
+            console.log(`[State] ${prevState} → off (timestamp: ${new Date().toISOString()})`);
+            return "off";
+          });
+          setTranscript("");
+          setTypingMode(false);
+          wakeWordDetectedRef.current = false;
+          isProcessingRef.current = false;
+          errorRetryCountRef.current = 0;
+          setErrorMessage("");
+          timingRef.current = {};
           return;
         }
         if (lowerIdea === 'mute' || lowerIdea === 'be quiet') {
@@ -466,11 +535,14 @@ export default function CineGenDirector() {
     };
     
     recognition.onerror = (event: any) => {
-      console.error("Speech recognition error:", event.error);
+      console.log(`[Recognition] Error: ${event.error}`);
       
       if (event.error === "not-allowed") {
         setErrorMessage("Microphone access denied. Please grant permission to use voice.");
-        setState("error");
+        setState((prevState) => {
+          console.log(`[State] ${prevState} → error (timestamp: ${new Date().toISOString()})`);
+          return "error";
+        });
         errorRetryCountRef.current = 999; // Don't retry permission errors
       } else if (event.error === "no-speech") {
         // Silence - just restart if we haven't exceeded retry limit
@@ -488,26 +560,33 @@ export default function CineGenDirector() {
         }
       } else if (event.error === "network") {
         setErrorMessage("Network error. Please check your connection.");
-        setState("error");
+        setState((prevState) => {
+          console.log(`[State] ${prevState} → error (timestamp: ${new Date().toISOString()})`);
+          return "error";
+        });
       } else {
         // Other errors - retry once then stop
         if (errorRetryCountRef.current < 1 && recognitionRef.current) {
           errorRetryCountRef.current++;
           setTimeout(() => {
             if (recognitionRef.current) {
-              startRecognition();
+              startRecognitionRef.current();
             }
           }, 500);
         } else {
           setErrorMessage("Speech recognition error. Please try again.");
-          setState("error");
+          setState((prevState) => {
+            console.log(`[State] ${prevState} → error (timestamp: ${new Date().toISOString()})`);
+            return "error";
+          });
         }
       }
     };
     
     recognition.onend = () => {
-      // Auto-restart if still in active session and not processing
-      if (state !== "off" && state !== "processing" && !isProcessingRef.current && errorRetryCountRef.current < 3) {
+      console.log("[Recognition] Ended");
+      // Auto-restart if recognitionRef still exists, not processing, and not in error state
+      if (recognitionRef.current && !isProcessingRef.current && errorRetryCountRef.current < 3) {
         setTimeout(() => {
           if (recognitionRef.current) {
             try {
@@ -529,7 +608,12 @@ export default function CineGenDirector() {
         console.error("Failed to start recognition:", e);
       }
     }
-  }, [state, speak, processCampaignIdea]);
+  }, [processCampaignIdea, speak]);
+  
+  // Update ref to latest function
+  useEffect(() => {
+    startRecognitionRef.current = startRecognition;
+  }, [startRecognition]);
   
   // Enable voice button handler
   const handleEnableVoice = useCallback(async () => {
@@ -545,27 +629,26 @@ export default function CineGenDirector() {
       // Request microphone permission
       await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      setState("awaiting_wake");
+      setState((prevState) => {
+        console.log(`[State] ${prevState} → awaiting_wake (timestamp: ${new Date().toISOString()})`);
+        return "awaiting_wake";
+      });
       wakeWordDetectedRef.current = false;
       setErrorMessage("");
       errorRetryCountRef.current = 0;
       setTypingMode(false); // Disable typing mode when enabling voice
-      startRecognition();
       
-      const welcomeText = 'Voice assistant enabled. Say "Hey CineGen" to start.';
-      const welcomeMsg: ConversationMessage = {
-        role: "assistant",
-        text: welcomeText,
-        timestamp: Date.now()
-      };
-      setMessages([welcomeMsg]);
-      speak(welcomeText);
+      // Clear previous messages to start fresh
+      setMessages([]);
+      
+      // Start recognition immediately - no long greeting to block input
+      startRecognitionRef.current();
       
     } catch (error: any) {
       setErrorMessage("Microphone access denied. Please grant permission to use voice features.");
       setState("error");
     }
-  }, [isSupported, startRecognition, speak]);
+  }, [isSupported]);
   
   // Stop voice session
   const handleStop = useCallback(() => {
@@ -590,7 +673,10 @@ export default function CineGenDirector() {
       abortControllerRef.current = null;
     }
     
-    setState("off");
+    setState((prevState) => {
+      console.log(`[State] ${prevState} → off (timestamp: ${new Date().toISOString()})`);
+      return "off";
+    });
     setTranscript("");
     setTypingMode(false);
     wakeWordDetectedRef.current = false;
@@ -600,6 +686,83 @@ export default function CineGenDirector() {
     timingRef.current = {};
     // Don't clear messages/history/draft on stop - user might want to resume
   }, []);
+  
+  // Talk now button - bypass wake detection
+  const handleTalkNow = useCallback(() => {
+    wakeWordDetectedRef.current = true;
+    setState((prevState) => {
+      console.log(`[State] ${prevState} → listening (timestamp: ${new Date().toISOString()})`);
+      return "listening";
+    });
+    setTranscript("");
+    
+    // Start recognition if not already running
+    if (!recognitionRef.current) {
+      startRecognitionRef.current();
+    }
+  }, []);
+  
+  // Microphone check
+  const handleStartMicCheck = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setMicCheckStream(stream);
+      setShowMicCheck(true);
+      
+      // Create audio context and analyser
+      const audioContext = new AudioContext();
+      const analyser = audioContext.createAnalyser();
+      const microphone = audioContext.createMediaStreamSource(stream);
+      
+      analyser.fftSize = 256;
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      
+      microphone.connect(analyser);
+      
+      audioContextRef.current = audioContext;
+      analyserRef.current = analyser;
+      
+      // Animation loop for level meter
+      const updateLevel = () => {
+        if (analyserRef.current) {
+          analyserRef.current.getByteFrequencyData(dataArray);
+          const average = dataArray.reduce((a, b) => a + b) / bufferLength;
+          setMicLevel(average);
+          micCheckAnimationRef.current = requestAnimationFrame(updateLevel);
+        }
+      };
+      
+      updateLevel();
+      
+    } catch (error) {
+      setErrorMessage("Could not access microphone. Please check permissions.");
+    }
+  }, []);
+  
+  const handleStopMicCheck = useCallback(() => {
+    // Stop animation
+    if (micCheckAnimationRef.current) {
+      cancelAnimationFrame(micCheckAnimationRef.current);
+      micCheckAnimationRef.current = null;
+    }
+    
+    // Close audio context
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+    
+    // Stop stream
+    if (micCheckStream) {
+      micCheckStream.getTracks().forEach(track => track.stop());
+      setMicCheckStream(null);
+    }
+    
+    setShowMicCheck(false);
+    setMicLevel(0);
+    analyserRef.current = null;
+  }, [micCheckStream]);
   
   // Type instead button - toggle typing mode
   const handleTypeInstead = useCallback(() => {
@@ -688,8 +851,18 @@ export default function CineGenDirector() {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
+      // Clean up mic check
+      if (micCheckAnimationRef.current) {
+        cancelAnimationFrame(micCheckAnimationRef.current);
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+      if (micCheckStream) {
+        micCheckStream.getTracks().forEach(track => track.stop());
+      }
     };
-  }, []);
+  }, [micCheckStream]);
   
   // Pause when page hidden
   useEffect(() => {
@@ -732,7 +905,7 @@ export default function CineGenDirector() {
   
   const stateLabels = {
     off: "Off",
-    awaiting_wake: 'Say "Hey CineGen"',
+    awaiting_wake: 'Ready—say Hey CineGen or tap Talk now',
     listening: "Listening...",
     processing: "Thinking...",
     speaking: "Speaking...",
@@ -1156,6 +1329,17 @@ export default function CineGenDirector() {
                   Enable voice
                 </button>
                 
+                {!showMicCheck && (
+                  <button
+                    onClick={handleStartMicCheck}
+                    className="w-full flex items-center justify-center gap-2 px-6 py-3 glass border border-white/10 text-foreground rounded-xl font-medium hover:bg-white/5 transition-all focus-visible:ring-2 focus-visible:ring-violet-400"
+                    aria-label="Check microphone"
+                  >
+                    <Mic className="w-4 h-4" />
+                    Check microphone
+                  </button>
+                )}
+                
                 <button
                   onClick={handleTypeInstead}
                   className="w-full flex items-center justify-center gap-2 px-6 py-3 glass border border-white/10 text-foreground rounded-xl font-medium hover:bg-white/5 transition-all focus-visible:ring-2 focus-visible:ring-violet-400 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
@@ -1175,6 +1359,59 @@ export default function CineGenDirector() {
                 <Mic className="w-4 h-4" />
                 Use voice instead
               </button>
+            ) : state === "awaiting_wake" ? (
+              <div className="space-y-2">
+                {/* Talk now button */}
+                <button
+                  onClick={handleTalkNow}
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-xl font-semibold hover:from-cyan-500 hover:to-blue-500 transition-all focus-visible:ring-2 focus-visible:ring-cyan-400"
+                  aria-label="Talk now"
+                >
+                  <Mic className="w-4 h-4" />
+                  Talk now
+                </button>
+                
+                {/* Main control bar */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsMuted(!isMuted)}
+                    className="flex items-center justify-center w-12 h-12 glass border border-white/10 rounded-xl hover:bg-white/5 transition-all focus-visible:ring-2 focus-visible:ring-cyan-400"
+                    aria-label={isMuted ? "Enable spoken replies" : "Disable spoken replies"}
+                    title={isMuted ? "Enable spoken replies" : "Disable spoken replies"}
+                  >
+                    {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                  </button>
+                  
+                  <button
+                    onClick={handleTypeInstead}
+                    className="flex items-center justify-center w-12 h-12 glass border border-white/10 rounded-xl hover:bg-white/5 transition-all focus-visible:ring-2 focus-visible:ring-violet-400"
+                    aria-label="Switch to typing"
+                    title="Type instead"
+                  >
+                    <Keyboard className="w-5 h-5" />
+                  </button>
+                  
+                  {campaignDraft && (
+                    <button
+                      onClick={() => executeAction("prepare_brief")}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-green-500 hover:to-emerald-500 transition-all focus-visible:ring-2 focus-visible:ring-green-400"
+                      aria-label="Review campaign brief"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      Review brief
+                    </button>
+                  )}
+                  
+                  <button
+                    onClick={handleStop}
+                    className="flex items-center justify-center gap-2 px-4 py-3 bg-red-600/20 border border-red-500/30 text-red-300 rounded-xl font-semibold hover:bg-red-600/30 transition-all focus-visible:ring-2 focus-visible:ring-red-400"
+                    aria-label="Stop voice assistant"
+                  >
+                    <Square className="w-4 h-4" />
+                    Stop
+                  </button>
+                </div>
+              </div>
             ) : (
               <div className="space-y-2">
                 {/* Stop speaking / Interrupt button (when speaking) */}
@@ -1184,8 +1421,12 @@ export default function CineGenDirector() {
                       if ('speechSynthesis' in window) {
                         window.speechSynthesis.cancel();
                       }
-                      setState("awaiting_wake");
-                      startRecognition();
+                      // Transition to listening, keep wake detected
+                      setState((prevState) => {
+                        console.log(`[State] ${prevState} → listening (timestamp: ${new Date().toISOString()})`);
+                        return "listening";
+                      });
+                      startRecognitionRef.current();
                     }}
                     className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-600/20 border border-amber-500/30 text-amber-300 rounded-xl font-semibold hover:bg-amber-600/30 transition-all focus-visible:ring-2 focus-visible:ring-amber-400"
                     aria-label="Stop speaking"
@@ -1202,9 +1443,20 @@ export default function CineGenDirector() {
                       if ('speechSynthesis' in window) {
                         window.speechSynthesis.cancel();
                       }
-                      setState("listening");
+                      // Stop current recognition if running
+                      if (recognitionRef.current) {
+                        try {
+                          recognitionRef.current.stop();
+                        } catch (e) {
+                          // Already stopped
+                        }
+                      }
+                      setState((prevState) => {
+                        console.log(`[State] ${prevState} → listening (timestamp: ${new Date().toISOString()})`);
+                        return "listening";
+                      });
                       wakeWordDetectedRef.current = true;
-                      startRecognition();
+                      startRecognitionRef.current();
                     }}
                     className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-cyan-600/20 border border-cyan-500/30 text-cyan-300 rounded-xl font-semibold hover:bg-cyan-600/30 transition-all focus-visible:ring-2 focus-visible:ring-cyan-400"
                     aria-label="Interrupt and speak"
@@ -1257,6 +1509,62 @@ export default function CineGenDirector() {
               </div>
             )}
           </div>
+          
+          {/* Microphone Check UI */}
+          <AnimatePresence>
+            {showMicCheck && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-4 p-4 bg-violet-500/10 border border-violet-500/30 rounded-xl space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-semibold text-violet-300">Microphone Check</h4>
+                  <button
+                    onClick={handleStopMicCheck}
+                    className="text-xs px-3 py-1 bg-red-600/20 border border-red-500/30 text-red-300 rounded hover:bg-red-600/30 transition-all"
+                  >
+                    Stop
+                  </button>
+                </div>
+                
+                {/* Audio level meter */}
+                <div className="space-y-2">
+                  <div className="w-full h-8 bg-background/50 rounded-lg overflow-hidden">
+                    <motion.div
+                      className="h-full bg-gradient-to-r from-cyan-500 to-violet-500"
+                      style={{ width: `${Math.min(100, (micLevel / 255) * 100)}%` }}
+                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    />
+                  </div>
+                  
+                  {micLevel > 30 && (
+                    <p className="text-xs text-green-400 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" />
+                      Sound detected
+                    </p>
+                  )}
+                  
+                  <p className="text-xs text-gray-400 italic">
+                    Note: Detected sound does NOT prove transcription will work
+                  </p>
+                </div>
+                
+                {/* Recovery guidance */}
+                <div className="text-xs text-gray-300 space-y-1">
+                  <p className="font-semibold text-violet-300">Common issues:</p>
+                  <ul className="list-disc list-inside space-y-0.5 ml-2">
+                    <li>No audio: Check browser mic permissions, select correct device</li>
+                    <li>No speech: Network issue or browser doesn't support recognition</li>
+                    <li>Unsupported language: Browser may not support selected language</li>
+                    <li>Network failure: Check connection</li>
+                    <li>Permission denied: Allow microphone in browser settings</li>
+                  </ul>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
           
           {/* Browser support notice */}
           {!isSupported && state === "off" && !typingMode && (
