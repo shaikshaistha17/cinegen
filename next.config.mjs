@@ -15,11 +15,20 @@ const nextConfig = {
   },
   // Enable SWC minification for better performance
   swcMinify: true,
+  // Exclude scripts directory from compilation
+  typescript: {
+    ignoreBuildErrors: false,
+  },
   webpack: (config, { isServer }) => {
     if (isServer) {
       // Make resend an optional dependency - ignore if not installed
       config.externals = [...(config.externals || []), 'resend'];
     }
+    // Exclude scripts directory from bundle
+    config.watchOptions = {
+      ...config.watchOptions,
+      ignored: ['**/scripts/**', '**/node_modules/**'],
+    };
     return config;
   },
 };

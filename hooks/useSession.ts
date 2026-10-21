@@ -191,21 +191,9 @@ export function useSession() {
         const data = await response.json();
         console.log('📥 API response:', data);
 
-        // For demo accounts, we need to manually set the session
-        if (data.isDemo) {
-          // Create a session object from the API response
-          const sess: Session = {
-            userId: data.user.id,
-            email: data.user.email,
-            role: data.user.role as UserRole,
-            name: data.user.name,
-            loginAt: new Date().toISOString(),
-            ...(data.user.role === "creator" ? { creatorId: data.profileId } : {}),
-            ...(data.user.role === "brand" ? { brandId: data.profileId } : {}),
-          };
-          setSessionState(sess);
-          setCookie("cinegen_role", sess.role);
-          notifyAll();
+        // For demo accounts, Supabase auth handles the session
+        if (data.isDemo && data.session) {
+          await supabase.auth.setSession(data.session);
           return true;
         }
 

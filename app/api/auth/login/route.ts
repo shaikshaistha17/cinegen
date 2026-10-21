@@ -74,15 +74,38 @@ export async function POST(req: NextRequest) {
     }
 
     // Handle demo accounts
+    // IMPORTANT: Demo accounts use regular Supabase auth with the anon key
+    // This ensures they respect RLS policies and have restricted permissions
     if (isDemoAccount && password === DEMO_PASSWORD) {
       try {
-        const serviceClient = createServiceClient();
+        // Use regular anon client for demo accounts (respects RLS)
+        const supabase = createClient();
         
-        // Get user from database
-        const { data: userData, error: userError } = await serviceClient
+        // Authenticate with Supabase Auth (this creates a proper JWT)
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: emailLower,
+          password: DEMO_PASSWORD,
+        });
+
+        if (error) {
+          return NextResponse.json(
+            { error: 'Demo account authentication failed. Ensure demo accounts exist in Supabase Auth.' },
+            { status: 401 }
+          );
+        }
+
+        if (!data.session) {
+          return NextResponse.json(
+            { error: 'Failed to create demo session' },
+            { status: 500 }
+          );
+        }
+
+        // Get user details from database using authenticated session
+        const { data: userData, error: userError } = await supabase
           .from('users')
-          .select('id, email, role, name')
-          .eq('email', emailLower)
+          .select('id, email, role, name, is_demo')
+          .eq('id', data.user.id)
           .single();
 
         if (userError || !userData) {
@@ -92,17 +115,22 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        // Get profile ID
+        // Verify this is actually marked as a demo account
+        if (!userData.is_demo) {
+          console.warn(`Account ${emailLower} used demo password but is_demo flag is false`);
+        }
+
+        // Get profile ID using authenticated session
         let profileId: string | undefined;
         if (userData.role === 'creator') {
-          const { data: profile } = await serviceClient
+          const { data: profile } = await supabase
             .from('creator_profiles')
             .select('id')
             .eq('user_id', userData.id)
             .single();
           profileId = profile?.id;
         } else if (userData.role === 'brand') {
-          const { data: profile } = await serviceClient
+          const { data: profile } = await supabase
             .from('brand_profiles')
             .select('id')
             .eq('user_id', userData.id)
@@ -110,10 +138,14 @@ export async function POST(req: NextRequest) {
           profileId = profile?.id;
         }
 
-        // Return demo session data (without actual Supabase auth session for demo)
+        // Return demo session with actual Supabase auth
         return NextResponse.json({
           isDemo: true,
-          user: userData,
+          session: data.session,
+          user: {
+            ...userData,
+            id: data.user.id,
+          },
           profileId,
         });
       } catch (error: any) {
