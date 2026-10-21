@@ -1,5 +1,8 @@
 {
   "verdict": "APPROVED",
-  "findings": [],
-  "reviewDoc": "/Users/shaisthashaik/Desktop/Cinegen/cinegen/.agents/tasks/2025-01-20-150100-review.md"
+  "findings": [
+    "Rate limiter persistence — In-memory storage resets on server restart or multi-instance deployment. For production, replace with Redis or a database-backed rate limiter scoped to userId+endpoint.",
+    "Portfolio matching scope — Matches only content type and tools used, not visual style or thematic elements. This is acceptable for a deterministic baseline but could miss stylistic fit. Document this limitation clearly for brands reviewing matches."
+  ],
+  "reviewDoc": "/Users/shaisthashaik/Desktop/Cinegen/cinegen/.agents/tasks/2025-01-21-143000-review.md"
 }

@@ -1,9 +1,13 @@
 import sharp from 'sharp';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import type { InspectionCheck, InspectionResult } from '@/types';
+
+const execAsync = promisify(exec);
 
 /**
  * Media inspection utilities for validating uploaded deliveries against requirements.
- * Uses sharp for images, graceful fallback for video (ffprobe may not be available).
+ * Uses sharp for images, ffprobe for videos.
  */
 
 // ─── Helper Functions ────────────────────────────────────────────────────────
@@ -113,6 +117,21 @@ async function inspectImage(
 
 // ─── Video Inspection ────────────────────────────────────────────────────────
 
+interface FFProbeVideoStream {
+  width?: number;
+  height?: number;
+  duration?: string;
+  r_frame_rate?: string;
+  codec_name?: string;
+}
+
+interface FFProbeOutput {
+  streams?: FFProbeVideoStream[];
+  format?: {
+    duration?: string;
+  };
+}
+
 async function inspectVideo(
   filePath: string,
   requirements: {
@@ -122,14 +141,105 @@ async function inspectVideo(
     [key: string]: any;
   }
 ): Promise<InspectionResult> {
-  // Video inspection requires ffprobe which is not available in all environments
-  // Gracefully return unsupported status
-  return {
-    status: 'unsupported',
-    checks: [],
-    metadata: {},
-    message: 'Video inspection requires ffprobe (not available in this environment)',
-  };
+  try {
+    // Run ffprobe to extract video metadata
+    const { stdout } = await execAsync(
+      `ffprobe -v quiet -print_format json -show_streams -show_format "${filePath}"`
+    );
+
+    const probeData: FFProbeOutput = JSON.parse(stdout);
+    const videoStream = probeData.streams?.find(s => s.width && s.height);
+
+    if (!videoStream || !videoStream.width || !videoStream.height) {
+      return {
+        status: 'error',
+        checks: [],
+        metadata: {},
+        message: 'Could not read video dimensions',
+      };
+    }
+
+    const checks: InspectionCheck[] = [];
+    const actualAspectRatio = videoStream.width / videoStream.height;
+    const actualResolution = `${videoStream.width}x${videoStream.height}`;
+    
+    // Parse duration (prefer stream duration, fall back to format duration)
+    let actualDuration: number | undefined;
+    if (videoStream.duration) {
+      actualDuration = parseFloat(videoStream.duration);
+    } else if (probeData.format?.duration) {
+      actualDuration = parseFloat(probeData.format.duration);
+    }
+
+    // Check aspect ratio if specified
+    if (requirements.aspectRatios && requirements.aspectRatios.length > 0) {
+      const expectedRatios = requirements.aspectRatios.map(parseAspectRatio);
+      const matchesAny = expectedRatios.some(expected =>
+        aspectRatioMatches(actualAspectRatio, expected)
+      );
+
+      checks.push({
+        requirement: 'Aspect Ratio',
+        actual: formatAspectRatio(actualAspectRatio),
+        expected: requirements.aspectRatios.join(' or '),
+        passed: matchesAny,
+      });
+    }
+
+    // Check resolution if specified
+    if (requirements.resolution) {
+      const resolutionMatch = actualResolution === requirements.resolution;
+      checks.push({
+        requirement: 'Resolution',
+        actual: actualResolution,
+        expected: requirements.resolution,
+        passed: resolutionMatch,
+      });
+    }
+
+    // Check duration if specified
+    if (requirements.durationSeconds && actualDuration !== undefined) {
+      const durationMatch = Math.abs(actualDuration - requirements.durationSeconds) < 1; // 1 second tolerance
+      checks.push({
+        requirement: 'Duration',
+        actual: `${actualDuration.toFixed(1)}s`,
+        expected: `${requirements.durationSeconds}s`,
+        passed: durationMatch,
+      });
+    }
+
+    const allPassed = checks.length > 0 ? checks.every(c => c.passed) : true;
+
+    return {
+      status: allPassed ? 'pass' : 'fail',
+      checks,
+      metadata: {
+        width: videoStream.width,
+        height: videoStream.height,
+        aspectRatio: actualAspectRatio,
+        duration: actualDuration,
+        codec: videoStream.codec_name,
+        fps: videoStream.r_frame_rate,
+      },
+    };
+  } catch (error: any) {
+    // Check if ffprobe is not installed
+    if (error.message?.includes('ffprobe') && error.message?.includes('not found')) {
+      return {
+        status: 'unsupported',
+        checks: [],
+        metadata: {},
+        message: 'Video inspection requires ffprobe (install ffmpeg to enable)',
+      };
+    }
+
+    return {
+      status: 'error',
+      checks: [],
+      metadata: {},
+      message: `Video inspection failed: ${error.message}`,
+    };
+  }
 }
 
 // ─── Main Inspection Function ────────────────────────────────────────────────
