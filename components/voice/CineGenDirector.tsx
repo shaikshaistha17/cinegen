@@ -3,12 +3,23 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Mic, MicOff, Volume2, VolumeX, Square, Keyboard,
-  Loader2, AlertCircle, CheckCircle2, Sparkles, Send, User
+  Loader2, AlertCircle, CheckCircle2, Sparkles, Send, User, Settings, ChevronDown, ChevronUp
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { useAuth } from "@/lib/auth-context";
 import type { ConversationMessage, CampaignDraft, DirectorAction } from "@/types";
+import {
+  SUPPORTED_LANGUAGES,
+  getPreviewSentence,
+  filterVoicesByLanguage,
+  formatVoiceDisplay,
+  serializeVoice,
+  findVoiceByIdentity,
+  getLanguageName,
+  getDefaultVoiceForLanguage,
+  type VoiceIdentity
+} from "@/lib/voice/languages";
 
 type AssistantState = 
   | "off"           // Not started
@@ -57,6 +68,14 @@ export default function CineGenDirector() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   
+  // New voice settings state
+  const [inputLanguage, setInputLanguage] = useState("en-IN");
+  const [replyLanguage, setReplyLanguage] = useState("en-US");
+  const [showSettingsPanel, setShowSettingsPanel] = useState(false);
+  const [showAllVoices, setShowAllVoices] = useState(false);
+  const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
+  const [recognitionWasActiveBeforePreview, setRecognitionWasActiveBeforePreview] = useState(false);
+  
   // Refs
   const recognitionRef = useRef<any>(null);
   const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -75,6 +94,15 @@ export default function CineGenDirector() {
     setIsSupported(!!SpeechRecognition && 'speechSynthesis' in window);
   }, []);
   
+  // Load settings from localStorage on mount
+  useEffect(() => {
+    const savedInputLang = localStorage.getItem('cinegen_input_lang');
+    const savedReplyLang = localStorage.getItem('cinegen_reply_lang');
+    
+    if (savedInputLang) setInputLanguage(savedInputLang);
+    if (savedReplyLang) setReplyLanguage(savedReplyLang);
+  }, []);
+  
   // Load voices and handle voice selection
   useEffect(() => {
     if (!('speechSynthesis' in window)) return;
@@ -84,14 +112,30 @@ export default function CineGenDirector() {
       setAvailableVoices(voices);
       
       // Try to restore saved voice from localStorage
-      const savedVoiceName = localStorage.getItem('cinegen_voice');
-      if (savedVoiceName && voices.length > 0) {
-        const voice = voices.find(v => v.name === savedVoiceName);
-        if (voice) setSelectedVoice(voice);
-      } else if (voices.length > 0) {
-        // Default to first English voice
-        const englishVoice = voices.find(v => v.lang.startsWith('en')) || voices[0];
-        setSelectedVoice(englishVoice);
+      const savedVoiceJSON = localStorage.getItem('cinegen_voice_identity');
+      if (savedVoiceJSON && voices.length > 0) {
+        try {
+          const identity: VoiceIdentity = JSON.parse(savedVoiceJSON);
+          const voice = findVoiceByIdentity(voices, identity);
+          if (voice) {
+            setSelectedVoice(voice);
+            return;
+          }
+        } catch (e) {
+          // Invalid JSON, fall through to default
+        }
+      }
+      
+      // No saved voice or not found - select default for reply language
+      if (voices.length > 0) {
+        const defaultVoice = getDefaultVoiceForLanguage(voices, replyLanguage, false);
+        if (defaultVoice) {
+          setSelectedVoice(defaultVoice);
+        } else {
+          // Fallback to first English voice if reply language has no voices
+          const englishVoice = voices.find(v => v.lang.startsWith('en')) || voices[0];
+          setSelectedVoice(englishVoice);
+        }
       }
     };
     
@@ -101,14 +145,24 @@ export default function CineGenDirector() {
     return () => {
       window.speechSynthesis.removeEventListener('voiceschanged', loadVoices);
     };
-  }, []);
+  }, [replyLanguage]);
   
   // Save selected voice to localStorage
   useEffect(() => {
     if (selectedVoice) {
-      localStorage.setItem('cinegen_voice', selectedVoice.name);
+      const identity = serializeVoice(selectedVoice);
+      localStorage.setItem('cinegen_voice_identity', JSON.stringify(identity));
     }
   }, [selectedVoice]);
+  
+  // Save language settings to localStorage
+  useEffect(() => {
+    localStorage.setItem('cinegen_input_lang', inputLanguage);
+  }, [inputLanguage]);
+  
+  useEffect(() => {
+    localStorage.setItem('cinegen_reply_lang', replyLanguage);
+  }, [replyLanguage]);
   
   // Helper to normalize and check for wake phrase variants
   const isWakePhrase = (text: string): boolean => {
@@ -148,6 +202,12 @@ export default function CineGenDirector() {
     // Skip TTS in typing mode unless explicitly forced
     if ((typingMode && !force) || isMuted || !('speechSynthesis' in window)) return;
     
+    // If no voice selected, skip TTS but keep text functional
+    if (!selectedVoice) {
+      console.log("[Speech] No voice available, text-only mode");
+      return;
+    }
+    
     timingRef.current.ttsStartTime = performance.now();
     
     // Log timing: response ready to TTS start
@@ -159,16 +219,16 @@ export default function CineGenDirector() {
     // Stop any ongoing speech
     window.speechSynthesis.cancel();
     
-    const phoneticText = getPhoneticText(text);
-    const utterance = new SpeechSynthesisUtterance(phoneticText);
+    // Only use phonetic text for English voices
+    const isEnglish = selectedVoice.lang.startsWith('en');
+    const textToSpeak = isEnglish ? getPhoneticText(text) : text;
+    
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
     utterance.rate = 1.0;
     utterance.pitch = 1.0;
     utterance.volume = 1.0;
-    
-    // Use selected voice if available
-    if (selectedVoice) {
-      utterance.voice = selectedVoice;
-    }
+    utterance.lang = selectedVoice.lang;
+    utterance.voice = selectedVoice;
     
     utterance.onstart = () => {
       console.log("[Speech] Started");
@@ -302,7 +362,8 @@ export default function CineGenDirector() {
         body: JSON.stringify({ 
           message: idea,
           sessionId,
-          conversationHistory: conversationHistory
+          conversationHistory: conversationHistory,
+          replyLanguage: replyLanguage
         }),
         signal: abortControllerRef.current.signal
       });
@@ -371,7 +432,7 @@ export default function CineGenDirector() {
       isProcessingRef.current = false;
       abortControllerRef.current = null;
     }
-  }, [speak, sessionId, conversationHistory]);
+  }, [speak, sessionId, conversationHistory, replyLanguage]);
   
   // Start recognition
   const startRecognition = useCallback(() => {
@@ -391,7 +452,7 @@ export default function CineGenDirector() {
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = "en-US";
+    recognition.lang = inputLanguage;
     
     recognition.onstart = () => {
       console.log("[Recognition] Started");
@@ -544,6 +605,14 @@ export default function CineGenDirector() {
           return "error";
         });
         errorRetryCountRef.current = 999; // Don't retry permission errors
+      } else if (event.error === "language-not-supported") {
+        const langName = getLanguageName(inputLanguage);
+        setErrorMessage(`${langName} speech recognition is not supported on this device. Try English or use Type instead.`);
+        setState((prevState) => {
+          console.log(`[State] ${prevState} → error (timestamp: ${new Date().toISOString()})`);
+          return "error";
+        });
+        errorRetryCountRef.current = 999; // Don't retry unsupported language
       } else if (event.error === "no-speech") {
         // Silence - just restart if we haven't exceeded retry limit
         if (recognitionRef.current && errorRetryCountRef.current < 3) {
@@ -608,12 +677,34 @@ export default function CineGenDirector() {
         console.error("Failed to start recognition:", e);
       }
     }
-  }, [processCampaignIdea, speak]);
+  }, [processCampaignIdea, speak, inputLanguage]);
   
   // Update ref to latest function
   useEffect(() => {
     startRecognitionRef.current = startRecognition;
   }, [startRecognition]);
+  
+  // Handle input language change - restart recognition if active
+  useEffect(() => {
+    if (recognitionRef.current && (state === "awaiting_wake" || state === "listening")) {
+      // Stop current recognition
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        // Already stopped
+      }
+      recognitionRef.current = null;
+      
+      // Restart after a brief delay
+      setTimeout(() => {
+        if (state === "awaiting_wake" || state === "listening") {
+          setState("awaiting_wake");
+          wakeWordDetectedRef.current = false;
+          startRecognitionRef.current();
+        }
+      }, 100);
+    }
+  }, [inputLanguage]); // Only trigger on language change
   
   // Enable voice button handler
   const handleEnableVoice = useCallback(async () => {
@@ -833,6 +924,65 @@ export default function CineGenDirector() {
     window.speechSynthesis.speak(utterance);
   }, [selectedVoice]);
   
+  // Play preview with native-language sample
+  const handlePlayPreview = useCallback(() => {
+    if (!('speechSynthesis' in window) || !selectedVoice) return;
+    
+    // Stop any current preview
+    window.speechSynthesis.cancel();
+    
+    // Check if recognition is active and pause it
+    const isRecognitionActive = state === "awaiting_wake" || state === "listening";
+    if (isRecognitionActive && recognitionRef.current) {
+      setRecognitionWasActiveBeforePreview(true);
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        // Already stopped
+      }
+    } else {
+      setRecognitionWasActiveBeforePreview(false);
+    }
+    
+    // Get native-language sample
+    const sampleText = getPreviewSentence(replyLanguage);
+    const utterance = new SpeechSynthesisUtterance(sampleText);
+    utterance.lang = replyLanguage;
+    utterance.voice = selectedVoice;
+    
+    setIsPreviewPlaying(true);
+    
+    const handlePreviewEnd = () => {
+      setIsPreviewPlaying(false);
+      // Restore recognition if it was active
+      if (recognitionWasActiveBeforePreview && recognitionRef.current === null) {
+        setTimeout(() => {
+          startRecognitionRef.current();
+        }, 100);
+      }
+    };
+    
+    utterance.onend = handlePreviewEnd;
+    utterance.onerror = handlePreviewEnd;
+    
+    window.speechSynthesis.speak(utterance);
+  }, [selectedVoice, replyLanguage, state, recognitionWasActiveBeforePreview]);
+  
+  // Stop preview
+  const handleStopPreview = useCallback(() => {
+    if (!('speechSynthesis' in window)) return;
+    
+    window.speechSynthesis.cancel();
+    setIsPreviewPlaying(false);
+    
+    // Restore recognition if it was active before preview
+    if (recognitionWasActiveBeforePreview && recognitionRef.current === null) {
+      setTimeout(() => {
+        startRecognitionRef.current();
+      }, 100);
+    }
+  }, [recognitionWasActiveBeforePreview]);
+  
   // Review brief button
   const handleReviewBrief = useCallback(() => {
     if (generatedBrief) {
@@ -994,37 +1144,173 @@ export default function CineGenDirector() {
             Describe your campaign. Shape your brief.
           </p>
           
-          {/* Voice Preview (shown when off and not in typing mode) */}
+          {/* Voice & Language Settings (shown when off and not in typing mode) */}
           {state === "off" && !typingMode && availableVoices.length > 0 && (
-            <div className="mb-4 p-3 bg-violet-500/5 border border-violet-500/20 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <Volume2 className="w-4 h-4 text-violet-400" />
-                <span className="text-xs font-semibold text-violet-300">Voice Preview</span>
-              </div>
-              <div className="flex gap-2">
-                <select
-                  value={selectedVoice?.name || ''}
-                  onChange={(e) => {
-                    const voice = availableVoices.find(v => v.name === e.target.value);
-                    if (voice) setSelectedVoice(voice);
-                  }}
-                  className="flex-1 text-xs px-2 py-1 bg-background/50 border border-white/10 rounded focus:outline-none focus:ring-1 focus:ring-violet-400"
-                  aria-label="Select voice"
-                >
-                  {availableVoices.map(voice => (
-                    <option key={voice.name} value={voice.name}>
-                      {voice.name} ({voice.lang})
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={handleVoicePreview}
-                  className="px-3 py-1 text-xs bg-violet-600 text-white rounded hover:bg-violet-500 transition-all focus-visible:ring-2 focus-visible:ring-violet-400"
-                  aria-label="Test voice pronunciation"
-                >
-                  Test
-                </button>
-              </div>
+            <div className="mb-4">
+              <button
+                onClick={() => setShowSettingsPanel(!showSettingsPanel)}
+                className="w-full flex items-center justify-between px-4 py-3 bg-violet-500/5 border border-violet-500/20 rounded-lg hover:bg-violet-500/10 transition-all focus-visible:ring-2 focus-visible:ring-violet-400"
+                aria-label="Voice and language settings"
+                aria-expanded={showSettingsPanel}
+              >
+                <div className="flex items-center gap-2">
+                  <Settings className="w-4 h-4 text-violet-400" />
+                  <span className="text-sm font-semibold text-violet-300">Voice & Language Settings</span>
+                </div>
+                {showSettingsPanel ? (
+                  <ChevronUp className="w-4 h-4 text-violet-400" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-violet-400" />
+                )}
+              </button>
+              
+              <AnimatePresence>
+                {showSettingsPanel && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-2 space-y-3"
+                  >
+                    {/* Section 1: I speak (input language) */}
+                    <div className="p-3 bg-violet-500/5 border border-violet-500/20 rounded-lg">
+                      <label className="text-xs font-semibold text-violet-300 block mb-1">
+                        I speak
+                      </label>
+                      <p className="text-xs text-gray-400 mb-2">(language you speak to CineGen)</p>
+                      <select
+                        value={inputLanguage}
+                        onChange={(e) => {
+                          setInputLanguage(e.target.value);
+                          const lang = SUPPORTED_LANGUAGES.find(l => l.code === e.target.value);
+                          if (lang) {
+                            // Show a brief toast-like message (we'll use a temporary state update)
+                            console.log(`Input language changed to ${lang.name}`);
+                          }
+                        }}
+                        className="w-full text-xs px-3 py-2 bg-background/50 border border-white/10 rounded focus:outline-none focus:ring-2 focus:ring-violet-400"
+                        aria-label="Select input language"
+                      >
+                        {SUPPORTED_LANGUAGES.map(lang => (
+                          <option key={lang.code} value={lang.code}>
+                            {lang.recognitionSupported ? "🎤 " : ""}{lang.nativeName} · {lang.code}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    {/* Section 2: Reply language */}
+                    <div className="p-3 bg-violet-500/5 border border-violet-500/20 rounded-lg">
+                      <label className="text-xs font-semibold text-violet-300 block mb-1">
+                        Reply language
+                      </label>
+                      <p className="text-xs text-gray-400 mb-2">(language for text responses)</p>
+                      <select
+                        value={replyLanguage}
+                        onChange={(e) => {
+                          setReplyLanguage(e.target.value);
+                          // Auto-select matching voice if current voice doesn't match
+                          const newLang = e.target.value;
+                          const matchingVoice = getDefaultVoiceForLanguage(availableVoices, newLang, showAllVoices);
+                          if (matchingVoice) {
+                            setSelectedVoice(matchingVoice);
+                          } else {
+                            // No voice for this language - clear selection
+                            setSelectedVoice(null);
+                          }
+                        }}
+                        className="w-full text-xs px-3 py-2 bg-background/50 border border-white/10 rounded focus:outline-none focus:ring-2 focus:ring-violet-400"
+                        aria-label="Select reply language"
+                      >
+                        {SUPPORTED_LANGUAGES.map(lang => (
+                          <option key={lang.code} value={lang.code}>
+                            {lang.nativeName} · {lang.code}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    {/* Section 3: Speaking voice */}
+                    <div className="p-3 bg-violet-500/5 border border-violet-500/20 rounded-lg">
+                      <label className="text-xs font-semibold text-violet-300 block mb-1">
+                        Speaking voice
+                      </label>
+                      <p className="text-xs text-gray-400 mb-2">(text-to-speech voice)</p>
+                      
+                      {(() => {
+                        const filteredVoices = filterVoicesByLanguage(availableVoices, replyLanguage, showAllVoices);
+                        
+                        if (filteredVoices.length === 0) {
+                          return (
+                            <div className="flex items-start gap-2 p-2 bg-amber-500/10 border border-amber-500/30 rounded">
+                              <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                              <div>
+                                <p className="text-xs text-amber-300">
+                                  No speaking voice available for {getLanguageName(replyLanguage)} on this device.
+                                </p>
+                                <p className="text-xs text-gray-400 mt-1">
+                                  Text replies will still work.
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        }
+                        
+                        return (
+                          <>
+                            <select
+                              value={selectedVoice?.name || ''}
+                              onChange={(e) => {
+                                const voice = filteredVoices.find(v => v.name === e.target.value);
+                                if (voice) setSelectedVoice(voice);
+                              }}
+                              className="w-full text-xs px-3 py-2 bg-background/50 border border-white/10 rounded focus:outline-none focus:ring-2 focus:ring-violet-400 mb-2"
+                              aria-label="Select speaking voice"
+                            >
+                              {filteredVoices.map(voice => (
+                                <option key={voice.name} value={voice.name}>
+                                  {formatVoiceDisplay(voice)}
+                                </option>
+                              ))}
+                            </select>
+                            
+                            <div className="flex gap-2 mb-2">
+                              {!isPreviewPlaying ? (
+                                <button
+                                  onClick={handlePlayPreview}
+                                  disabled={!selectedVoice}
+                                  className="flex-1 px-3 py-1.5 text-xs bg-violet-600 text-white rounded hover:bg-violet-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-violet-400"
+                                  aria-label="Preview voice pronunciation"
+                                >
+                                  Preview
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={handleStopPreview}
+                                  className="flex-1 px-3 py-1.5 text-xs bg-red-600 text-white rounded hover:bg-red-500 transition-all focus-visible:ring-2 focus-visible:ring-red-400"
+                                  aria-label="Stop preview"
+                                >
+                                  Stop preview
+                                </button>
+                              )}
+                            </div>
+                            
+                            <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={showAllVoices}
+                                onChange={(e) => setShowAllVoices(e.target.checked)}
+                                className="rounded border-white/10 bg-background/50 text-violet-600 focus:ring-2 focus:ring-violet-400"
+                              />
+                              Show all device voices
+                            </label>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
           

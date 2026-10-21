@@ -5,10 +5,11 @@ import type { ConversationMessage, DirectorResponse, CampaignDraft } from "@/typ
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { message, sessionId, conversationHistory }: {
+    const { message, sessionId, conversationHistory, replyLanguage }: {
       message: string;
       sessionId: string;
       conversationHistory: ConversationMessage[];
+      replyLanguage?: string;
     } = body;
 
     // Validate inputs
@@ -53,7 +54,8 @@ export async function POST(req: NextRequest) {
     const response = await generateConversationalResponse(
       message,
       boundedHistory,
-      displayName
+      displayName,
+      replyLanguage || 'en-US'
     );
 
     return NextResponse.json(response);
@@ -72,7 +74,8 @@ export async function POST(req: NextRequest) {
 async function generateConversationalResponse(
   message: string,
   history: ConversationMessage[],
-  displayName: string
+  displayName: string,
+  replyLanguage: string
 ): Promise<DirectorResponse> {
   const apiKey = process.env.GEMINI_API_KEY;
   
@@ -84,6 +87,24 @@ async function generateConversationalResponse(
       error: true
     };
   }
+
+  // Map language codes to natural language names
+  const languageNames: Record<string, string> = {
+    "en-US": "English",
+    "en-IN": "English",
+    "en-GB": "English",
+    "te-IN": "Telugu",
+    "hi-IN": "Hindi",
+    "ta-IN": "Tamil",
+    "kn-IN": "Kannada",
+    "ml-IN": "Malayalam",
+    "mr-IN": "Marathi",
+    "bn-IN": "Bengali",
+    "gu-IN": "Gujarati",
+    "pa-IN": "Punjabi",
+  };
+  
+  const languageName = languageNames[replyLanguage] || "English";
 
   // Build system prompt
   const greeting = displayName 
@@ -97,6 +118,10 @@ PERSONALITY:
 - Natural and supportive, like a creative partner
 - Ask ONE clarification at a time, not multiple questions
 - Don't force every conversation into a campaign brief
+
+LANGUAGE:
+- Respond in ${languageName}. Use natural, conversational ${languageName}.
+- Keep the tone warm and professional regardless of language.
 
 CONVERSATION MODES:
 1. Casual conversation: If user says "How are you?" or similar, respond naturally. Don't push campaign creation.
