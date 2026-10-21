@@ -22,6 +22,7 @@ type FormData = {
   };
   negativeKeywords: string[];
   quantity: number;
+  durationSeconds?: number;
 };
 
 type Issue = {
@@ -46,6 +47,16 @@ function analyzeBrief(form: FormData): Issue[] {
   if (form.budgetMin > form.budgetMax && form.budgetMax > 0)
     issues.push({ type: "error", field: "Budget", message: "Min budget is higher than max budget", fix: "Flip the values — min should be lower than max" });
 
+  // Part 3: Conflicting spec check
+  if (form.contentType === "Short-form Video" && form.durationSeconds && form.durationSeconds > 60) {
+    issues.push({ 
+      type: "error", 
+      field: "Duration", 
+      message: "Short-form video with duration over 60 seconds is contradictory", 
+      fix: "Either change content type to Brand Film or reduce duration to ≤60 seconds" 
+    });
+  }
+
   // Warnings
   if (form.aspectRatios.length === 0)
     issues.push({ type: "warning", field: "Aspect Ratio", message: "No aspect ratio selected", fix: "Pick at least one — 16:9 for YouTube, 9:16 for Reels/TikTok" });
@@ -58,6 +69,29 @@ function analyzeBrief(form: FormData): Issue[] {
   if (!form.deadline)
     issues.push({ type: "warning", field: "Deadline", message: "No deadline set", fix: "Set a deadline to attract creators who are available" });
 
+  // Part 3: Missing exclusivity regions check
+  if (form.commercialUse?.exclusivity && (!form.commercialUse.usageRegions || form.commercialUse.usageRegions.length === 0)) {
+    issues.push({ 
+      type: "warning", 
+      field: "Exclusivity Regions", 
+      message: "Exclusivity requested but no usage regions specified", 
+      fix: "Specify the regions where exclusivity applies" 
+    });
+  }
+
+  // Part 3: Budget/timeline feasibility (labeled as estimate)
+  if (form.deadline && form.budgetMax > 0) {
+    const daysUntilDeadline = (new Date(form.deadline).getTime() - Date.now()) / 86400000;
+    if (daysUntilDeadline < 7 && form.budgetMax < 1000) {
+      issues.push({ 
+        type: "warning", 
+        field: "Feasibility", 
+        message: "⚠️ Estimate only (assumptions: 1 creator, standard delivery): tight deadline and low budget may limit creator availability", 
+        fix: "Consider extending deadline to at least 2 weeks or increasing budget" 
+      });
+    }
+  }
+
   // Suggestions
   if (form.budgetMax > 0 && form.budgetMax < 500)
     issues.push({ type: "suggestion", field: "Budget", message: "Budget seems low for AI production", fix: "Typical AI brand films start at $500–$1,000. Consider increasing." });
@@ -65,8 +99,21 @@ function analyzeBrief(form: FormData): Issue[] {
     issues.push({ type: "suggestion", field: "Model Indemnity", message: "Model indemnity not required", fix: "For commercial campaigns, requiring model indemnity protects your brand" });
   if (form.negativeKeywords.length === 0)
     issues.push({ type: "suggestion", field: "Negative Keywords", message: "No negative keywords added", fix: "Add words like 'violence', 'political' to prevent unwanted content" });
-  if (form.quantity === 1)
-    issues.push({ type: "suggestion", field: "Deliverables", message: "Only 1 deliverable requested", fix: "Consider requesting multiple formats (16:9 + 9:16) for more value" });
+  
+  // Part 3: Missing revision allowance check
+  const objectiveLower = form.objective?.toLowerCase() || '';
+  const styleLower = form.style?.toLowerCase() || '';
+  if (!objectiveLower.includes('revision') && !styleLower.includes('revision')) {
+    issues.push({ 
+      type: "suggestion", 
+      field: "Revisions", 
+      message: "No revision allowance mentioned in objective or style", 
+      fix: "State how many revision rounds are included (e.g. '2 rounds of revisions')" 
+    });
+  }
+
+  // Part 3: Multi-format validity - DON'T flag as contradictory when quantity > 1 and multiple aspect ratios
+  // (This is explicitly requested and valid, so we removed any existing warning for this case)
 
   return issues;
 }

@@ -16,12 +16,19 @@ function isSupabaseConfigured(): boolean {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, password, role, name } = body;
+    const { email, password, role, name, companyName } = body;
 
     // Validate input
     if (!email || !password || !role || !name) {
       return NextResponse.json(
         { error: 'Missing required fields: email, password, role, name' },
+        { status: 400 }
+      );
+    }
+
+    if (role === 'brand' && !companyName) {
+      return NextResponse.json(
+        { error: 'Company name is required for brand accounts' },
         { status: 400 }
       );
     }
@@ -140,7 +147,7 @@ export async function POST(req: NextRequest) {
         .from('brand_profiles')
         .insert({
           user_id: authData.user.id,
-          company_name: name,
+          company_name: companyName || name,
           website: '',
           industry: '',
           created_at: new Date().toISOString(),

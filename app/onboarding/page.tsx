@@ -60,42 +60,42 @@ export default function OnboardingPage() {
   const handleFinish = async () => {
     if (!session) { router.push("/login"); return; }
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 600));
 
-    const profile = {
-      id: session.creatorId ?? session.userId,
-      userId: session.userId,
-      name: session.name,
-      email: session.email,
-      headline: headline || `${session.name} — AI Content Creator`,
-      bio: bio || "AI content creator specializing in generative media.",
-      location: location || "Remote",
-      tools,
-      specializations,
-      skills,
-      hourlyRateUsd: Number(rate) || 50,
-      availability,
-      avatarUrl: `https://picsum.photos/seed/${session.userId}/200/200`,
-      coverUrl: `https://picsum.photos/seed/${session.userId}cover/800/300`,
-      joinedAt: new Date().toISOString(),
-      stats: { projectsCompleted: 0, avgRating: 0, repeatClientRate: 0, responseTime: "< 1 hour" },
-      verification: { toolsVerified: false, workflowVerified: false, pastWorkVerified: false, badge: "Unverified" },
-      portfolio: [],
-    };
+    try {
+      // Create profile in database via API
+      const response = await fetch('/api/creators', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          handle: session.email.split('@')[0],
+          avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${session.userId}`,
+          coverUrl: `https://picsum.photos/seed/${session.userId}cover/800/300`,
+          headline: headline || `${session.name} — AI Content Creator`,
+          bio: bio || "AI content creator specializing in generative media.",
+          location: location || "Remote",
+          hourlyRateUsd: Number(rate) || 50,
+          availability,
+          specializations,
+          skills,
+          verifiedTools: tools.map(t => ({ name: t, proficiency: 'Intermediate', verified: false })),
+          languages: ['English'],
+        }),
+      });
 
-    // Save to registered creator profiles
-    const existing = storage.read<typeof profile[]>("cinegen_creator_profiles") ?? [];
-    const updated = [...existing.filter((p) => p.id !== profile.id), profile];
-    storage.write("cinegen_creator_profiles", updated);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create profile');
+      }
 
-    // Mark onboarding complete in session
-    const updatedSession = { ...session, onboarded: true };
-    storage.write("cinegen_session", updatedSession);
-
-    setSaving(false);
-    setStep(3);
-    toast.success("Profile saved! Welcome to CineGen.");
-    setTimeout(() => router.push("/dashboard"), 1500);
+      setStep(3);
+      toast.success("Profile saved! Welcome to CineGen.");
+      setTimeout(() => router.push("/dashboard"), 1500);
+    } catch (error: any) {
+      console.error('Onboarding error:', error);
+      toast.error(error.message || 'Failed to save profile. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (!session) {

@@ -26,7 +26,7 @@ export type LicenseTier =
   | "Royalty-Free"
   | "Limited";
 
-export type BriefStatus = "Draft" | "Open" | "In Review" | "Hired" | "Delivered";
+export type BriefStatus = "Draft" | "Open" | "In Review" | "Hired" | "In Production" | "Delivered";
 
 export type ProposalStatus = "Pending" | "Shortlisted" | "Accepted" | "Rejected";
 
@@ -247,4 +247,80 @@ export interface CreatorService {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+// ─── Media Inspection Types ───────────────────────────────────────────────
+
+export interface InspectionCheck {
+  requirement: string;
+  actual: string;
+  expected: string;
+  passed: boolean;
+}
+
+export interface InspectionResult {
+  status: 'pass' | 'fail' | 'unsupported' | 'error';
+  checks: InspectionCheck[];
+  metadata: Record<string, any>;
+  message?: string;
+}
+
+// ─── Agreement & Delivery Types ───────────────────────────────────────────
+
+export interface Agreement {
+  id: string;
+  briefId: string;
+  proposalId: string;
+  creatorId: string;
+  brandId: string;
+  version: number;
+  deliverables: {
+    contentType: string;
+    aspectRatios: string[];
+    durationSeconds?: number;
+    resolution?: string;
+    quantity: number;
+  };
+  price: number;
+  currency: string;
+  milestones: {
+    timelineDays: number;
+  };
+  includedRevisions: number;
+  usageRequirements: any;
+  creatorAcceptedAt: string | null;
+  brandAcceptedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Delivery {
+  id: string;
+  agreementId: string;
+  creatorId: string;
+  version: number;
+  filePath: string;
+  fileName: string;
+  fileSizeBytes: number;
+  mimeType: string;
+  inspectionStatus: 'pass' | 'fail' | 'unsupported' | 'error';
+  inspectionResults: InspectionResult;
+  inspectedAt: string;
+  brandApprovedAt: string | null;
+  approvalNotes: string | null;
+  createdAt: string;
+}
+
+export interface ProjectMessage {
+  id: string;
+  agreementId: string;
+  senderId: string;
+  messageType: 'text' | 'feedback' | 'scope_change';
+  content: string;
+  deliveryVersion?: number;
+  videoTimestampSeconds?: number;
+  proposedChanges?: any;
+  changeAcceptedByCreator: string | null;
+  changeAcceptedByBrand: string | null;
+  createdAt: string;
 }

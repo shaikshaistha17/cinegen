@@ -1,0 +1,7 @@
+{
+  "task_id": "task-part4-delivery-workflow",
+  "task_description": "Implement versioned agreements, private delivery uploads with technical inspection, feedback system, approval workflow, and Production Passport for CineGen's distinctive brief-to-approved-delivery workflow",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004", "FEAT-005"],
+  "blocked_reason": null
+}

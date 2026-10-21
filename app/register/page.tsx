@@ -29,6 +29,7 @@ export default function RegisterPage() {
   const router = useRouter();
   const [role, setRole] = useState<Role>('brand');
   const [name, setName] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -44,6 +45,10 @@ export default function RegisterPage() {
       toast.error('Please fill all fields. Password must be at least 6 characters.');
       return;
     }
+    if (role === 'brand' && !companyName.trim()) {
+      toast.error('Please enter your company name.');
+      return;
+    }
     setLoading(true);
     try {
       const response = await fetch('/api/auth/register', {
@@ -52,7 +57,8 @@ export default function RegisterPage() {
         body: JSON.stringify({ 
           email: email.trim(), 
           password, 
-          name: name.trim(), 
+          name: name.trim(),
+          companyName: role === 'brand' ? companyName.trim() : undefined,
           role 
         }),
       });
@@ -196,13 +202,22 @@ export default function RegisterPage() {
                 <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1.5">
-                  {role === 'brand' ? 'Brand / Company Name' : 'Your Full Name'}
+                  {role === 'brand' ? 'Your Full Name' : 'Your Full Name'}
                 </label>
                 <input type="text" value={name} onChange={(e) => setName(e.target.value)}
-                  placeholder={role === 'brand' ? 'e.g. Nexus Energy Co.' : 'e.g. Shaistha Shaik'}
+                  placeholder="e.g. Shaistha Shaik"
                   className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20 placeholder:text-muted-foreground transition-all"
                   required />
               </div>
+              {role === 'brand' && (
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Company / Agency Name</label>
+                  <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)}
+                    placeholder="e.g. Nexus Energy Co."
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20 placeholder:text-muted-foreground transition-all"
+                    required />
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium mb-1.5">Email address</label>
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}

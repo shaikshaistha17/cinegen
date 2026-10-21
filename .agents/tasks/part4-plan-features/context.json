@@ -1,0 +1,27 @@
+{
+  "project_type": "Next.js 14 App Router + Supabase PostgreSQL + TypeScript",
+  "language": "TypeScript",
+  "build_system": "Next.js 14.2.35 with npm, static export disabled due to Supabase SSR requirements",
+  "test_framework": "No test framework currently installed. Manual testing via npm run dev and verification steps in each FEAT.",
+  "build_command": "npm run build",
+  "test_command": "npm run dev (manual verification required as no automated tests exist)",
+  "verification_instructions": "For each feature: (1) Run npm run build to verify TypeScript compilation passes with 0 errors. (2) Start dev server with npm run dev. (3) Test specific API endpoints with actual HTTP requests. (4) Verify database changes in Supabase dashboard SQL Editor. (5) Check UI functionality in browser. Document actual tests run, not aspirational ones.",
+  "snapshot_or_generated_files": "None. No generated files checked into Git.",
+  "environment_constraints": "Supabase client requires runtime environment (cookies). Build may show prerender warnings on pages using dynamic Supabase calls - acceptable as app uses SSR. sharp must be installed via npm for image inspection. ffprobe not available in deployment - graceful fallback to 'unsupported' status required. Never fake a pass for unsupported formats.",
+  "contribution_requirements": "Per KIRO_PROGRESS.md: (1) Add server-side ownership checks to all API routes. (2) Verify RLS policies block cross-user access. (3) No secrets in Git. (4) Update KIRO_PROGRESS.md with implementation details, actual tests run (not claimed), limitations, and required external setup. (5) Distinguish mocked-provider tests from real provider verification. (6) Label deterministic assistance when no AI provider configured.",
+  "key_patterns": "API routes: (1) Use createClient() from @/lib/supabase for RLS-enforced queries. (2) Call supabase.auth.getUser() to get authenticated user. (3) Verify ownership by checking user.id matches resource owner. (4) Return 401 Unauthorized if no user, 403 Forbidden if wrong user, 404 Not Found if resource missing, 400 Bad Request for validation errors. (5) Use NextRequest/NextResponse. Existing examples: app/api/proposals/route.ts, app/api/briefs/route.ts. Storage: Supabase Storage configured with avatars and portfolios buckets (public). Need new private 'deliveries' bucket with RLS policies for participant-only access. Database migrations: Apply via Supabase SQL Editor, store in database/migrations/. Types: Define in types/index.ts, follow existing patterns (Session, Brief, Proposal). Hooks: Custom data-fetching hooks in hooks/ (useSession, useBriefs, useProposals as examples).",
+  "relevant_files": [
+    "database/schema.sql",
+    "database/storage-buckets.sql",
+    "lib/supabase.ts",
+    "app/api/proposals/route.ts",
+    "app/api/briefs/route.ts",
+    "hooks/useSession.ts",
+    "hooks/useBriefs.ts",
+    "hooks/useProposals.ts",
+    "types/index.ts",
+    "package.json",
+    "KIRO_PROGRESS.md"
+  ],
+  "directory_structure": "app/ (Next.js pages and API routes), app/api/ (API endpoints), components/ (React components), hooks/ (custom hooks), lib/ (utilities, Supabase client), types/ (TypeScript types), database/ (SQL schemas and migrations), scripts/ (seed/reset scripts), deployment/ (deployment docs - to be created)"
+}

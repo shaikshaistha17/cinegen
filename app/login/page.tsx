@@ -221,8 +221,8 @@ export default function LoginPage() {
                     <Sparkles className="w-4 h-4 text-violet-400" />
                   </div>
                   <div className="flex-1 text-left">
-                    <div className="text-sm font-medium">Continue as Brand</div>
-                    <div className="text-xs text-muted-foreground">Post briefs & hire creators</div>
+                    <div className="text-sm font-medium">Continue as Demo Brand</div>
+                    <div className="text-xs text-muted-foreground">Explore brand features instantly</div>
                   </div>
                   <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-violet-400 transition-colors" />
                 </button>
@@ -235,7 +235,7 @@ export default function LoginPage() {
                     <Zap className="w-4 h-4 text-cyan-400" />
                   </div>
                   <div className="flex-1 text-left">
-                    <div className="text-sm font-medium">Continue as Creator</div>
+                    <div className="text-sm font-medium">Continue as Demo Creator</div>
                     <div className="text-xs text-muted-foreground">Browse briefs & submit proposals</div>
                   </div>
                   <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-cyan-400 transition-colors" />
@@ -260,8 +260,16 @@ export default function LoginPage() {
 
           {activeTab === 'freeaccounts' && (
             <div className="glass rounded-2xl border border-white/10 p-6">
+              <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                <p className="text-sm text-amber-200 font-medium mb-2">⚠️ Shared Demo Accounts</p>
+                <p className="text-xs text-muted-foreground">
+                  These are public demo accounts for testing. Any data you create will be visible to other users. 
+                  For private testing, please <Link href="/register" className="text-violet-400 hover:text-violet-300">create your own account</Link>.
+                </p>
+              </div>
+              
               <div className="mb-4">
-                <h2 className="font-semibold text-lg mb-2">Free Demo Accounts</h2>
+                <h2 className="font-semibold text-lg mb-2">Team Demo Accounts</h2>
                 <p className="text-sm text-muted-foreground">
                   All accounts use password: <code className="bg-white/5 px-2 py-1 rounded text-foreground font-mono text-xs">Demo@123</code>
                 </p>
