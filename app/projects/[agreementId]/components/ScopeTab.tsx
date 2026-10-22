@@ -10,6 +10,7 @@ import {
   Globe,
 } from "lucide-react";
 import { toast } from "sonner";
+import { formatCurrency } from "@/lib/utils";
 
 interface ScopeTabProps {
   agreement: any;
@@ -244,11 +245,13 @@ export default function ScopeTab({
             </h3>
           </div>
           <p className="text-3xl font-bold text-gray-900 dark:text-white">
-            ${agreement.price?.toLocaleString() || "0"}
+            {formatCurrency(agreement.price || 0)}
           </p>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            {agreement.currency || "USD"}
-          </p>
+          {agreement.currency && agreement.currency !== 'INR' && (
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              (originally {agreement.currency})
+            </p>
+          )}
         </div>
 
         <div className="bg-white/80 dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-6">

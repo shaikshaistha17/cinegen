@@ -36,11 +36,11 @@ export async function GET(request: NextRequest) {
     }
 
     if (rateMin > 0) {
-      query = query.gte("hourly_rate_usd", rateMin);
+      query = query.gte("hourly_rate_inr", rateMin);
     }
 
     if (rateMax < 999999) {
-      query = query.lte("hourly_rate_usd", rateMax);
+      query = query.lte("hourly_rate_inr", rateMax);
     }
 
     if (availability) {

@@ -31,9 +31,11 @@ Given a plain-language campaign idea, extract and return ONLY a valid JSON objec
   "resolution": one of ["1080p","4K","8K"],
   "quantity": number,
   "toolsPreferred": array of tools from ["Midjourney","Runway","Kling","Veo","Sora","Pika","Luma","Flux","ComfyUI","Stable Diffusion","ElevenLabs","Suno","HeyGen","Topaz","Higgsfield"],
-  "budgetMin": number (USD),
-  "budgetMax": number (USD),
+  "budgetMin": number (INR - Indian Rupees),
+  "budgetMax": number (INR - Indian Rupees),
   "deadline": ISO date string (30 days from today),
+
+Note: All budget amounts must be in Indian Rupees (INR). Typical ranges: ₹40,000-₹5,00,000 for small projects, ₹5,00,000-₹50,00,000 for large campaigns.
   "commercialUse": {
     "licenseTier": one of ["Full Buyout","Commercial 1yr","Editorial Only","Royalty-Free","Limited"],
     "modelIndemnityRequired": boolean,

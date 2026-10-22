@@ -1,0 +1,41 @@
+{
+  "verdict": "CHANGES_REQUESTED",
+  "findings": [
+    {
+      "severity": "HIGH",
+      "category": "data_integrity",
+      "description": "AI Brief Drafter system prompt instructs Gemini to generate budgets in USD (lines 34-35: 'budgetMin: number (USD)'), but these values are stored as INR in the database. This creates semantic currency mismatch where AI-generated briefs will have USD amounts stored as INR, breaking budget matching against INR creator rates. When users generate briefs with AI, budgets will be incorrectly scaled (e.g., $5000 becomes ₹5000 instead of ₹415,000).",
+      "location": "/lib/ai/briefDrafter.ts:34-35",
+      "recommendation": "Change system prompt to specify 'budgetMin: number (INR - Indian Rupees)' and 'budgetMax: number (INR - Indian Rupees)'. Add instruction: 'All budget amounts must be in Indian Rupees (INR). Typical ranges: ₹40,000-₹5,00,000 for small projects, ₹5,00,000-₹50,00,000 for large campaigns.'"
+    },
+    {
+      "severity": "HIGH",
+      "category": "code_quality",
+      "description": "Creator filter API queries non-existent database column 'hourly_rate_usd' (lines 39, 43) which was renamed to 'hourly_rate_inr' in the schema. This will cause database errors when users apply hourly rate filters on /creators page. Query: 'query.gte(\"hourly_rate_usd\", rateMin)' and 'query.lte(\"hourly_rate_usd\", rateMax)' will fail with 'column does not exist' error.",
+      "location": "/app/api/creators/route.ts:39,43",
+      "recommendation": "Change line 39 to: query = query.gte(\"hourly_rate_inr\", rateMin); and line 43 to: query = query.lte(\"hourly_rate_inr\", rateMax);"
+    },
+    {
+      "severity": "HIGH",
+      "category": "code_quality",
+      "description": "User registration attempts to insert 'hourly_rate_usd: 50' (line 123) into creator_profiles table, but this column was renamed to 'hourly_rate_inr'. This blocks all new creator signups with database error 'column \"hourly_rate_usd\" of relation \"creator_profiles\" does not exist'. Critical business flow failure.",
+      "location": "/app/api/auth/register/route.ts:123",
+      "recommendation": "Change line 123 to: hourly_rate_inr: 4000, (4000 INR ≈ entry-level rate from seed data, equivalent to previous $50 default)"
+    },
+    {
+      "severity": "HIGH",
+      "category": "data_integrity",
+      "description": "Agreement creation endpoint hardcodes 'currency: \"USD\"' (line 107) when creating agreements from accepted proposals. This contradicts the INR standardization requirement and migration default. Agreements created from INR proposals will be labeled as USD, causing semantic mismatch in financial displays and reporting. The migration sets default to 'INR' but API explicitly overrides it.",
+      "location": "/app/api/agreements/route.ts:107",
+      "recommendation": "Change line 107 to: currency: 'INR',"
+    },
+    {
+      "severity": "HIGH",
+      "category": "code_quality",
+      "description": "Agreement price display uses hardcoded dollar symbol '${agreement.price?.toLocaleString()}' instead of formatCurrency() utility (line 249). This produces inconsistent formatting: US number grouping ($320,000) instead of Indian (₹3,20,000), and displays USD symbol when all other monetary displays use INR. The display also shows 'USD' fallback text (line 250) contradicting INR standardization.",
+      "location": "/app/projects/[agreementId]/components/ScopeTab.tsx:248-252",
+      "recommendation": "Import formatCurrency from '@/lib/utils'. Replace line 248 with: {formatCurrency(agreement.price || 0)}. Replace lines 250-252 with conditional that only shows originalCurrency note if currency is not 'INR': {agreement.currency && agreement.currency !== 'INR' && <p className=\"text-sm text-gray-600 dark:text-gray-400 mt-1\">(originally {agreement.currency})</p>}"
+    }
+  ],
+  "reviewDoc": "/Users/shaisthashaik/Desktop/Cinegen/cinegen/.agents/tasks/inr-conversion-review.md"
+}

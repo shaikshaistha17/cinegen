@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
         version: 1,
         deliverables,
         price: proposal.price,
-        currency: 'USD',
+        currency: 'INR',
         milestones,
         included_revisions: 2,
         usage_requirements: usageRequirements,

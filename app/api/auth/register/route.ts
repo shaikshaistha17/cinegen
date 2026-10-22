@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
           headline: 'AI Creator',
           bio: '',
           location: '',
-          hourly_rate_usd: 50,
+          hourly_rate_inr: 4000,
           availability: 'Available',
           verified_tools: [],
           languages: ['English'],
