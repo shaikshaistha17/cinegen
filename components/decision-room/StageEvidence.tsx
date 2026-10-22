@@ -1,9 +1,10 @@
 "use client";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ChevronUp, Shield, CheckCircle2, AlertCircle, XCircle, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Shield, CheckCircle2, AlertCircle, XCircle, Loader2, FileText, ArrowRight } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 interface CreatorMatch {
   creator: {
@@ -33,9 +34,18 @@ interface StageEvidenceProps {
   roomId: string;
   selectedCreatorId?: string | null;
   onSelectCreator: (creatorId: string) => Promise<void>;
+  requirements?: Record<string, any>;
+  selectedDirection?: any;
 }
 
-export default function StageEvidence({ roomId, selectedCreatorId, onSelectCreator }: StageEvidenceProps) {
+export default function StageEvidence({ 
+  roomId, 
+  selectedCreatorId, 
+  onSelectCreator,
+  requirements,
+  selectedDirection
+}: StageEvidenceProps) {
+  const router = useRouter();
   const [creators, setCreators] = useState<CreatorMatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedCreator, setExpandedCreator] = useState<string | null>(null);
@@ -69,6 +79,29 @@ export default function StageEvidence({ roomId, selectedCreatorId, onSelectCreat
     } finally {
       setSelecting(false);
     }
+  };
+  
+  const handleCreateBrief = () => {
+    // Serialize decision room data to sessionStorage
+    const briefDraft = {
+      decision_room_id: roomId,
+      campaign_title: selectedDirection?.title || requirements?.title || '',
+      objective: selectedDirection?.concept || requirements?.objective || '',
+      content_type: requirements?.content_type || 'Short-form Video',
+      deliverables: selectedDirection?.deliverables || [],
+      budget_min: requirements?.budget ? Math.floor(requirements.budget * 0.8) : 0,
+      budget_max: requirements?.budget || 0,
+      deadline: requirements?.deadline || '',
+      tools_preferred: selectedDirection?.required_skills || [],
+      style: requirements?.style || selectedDirection?.concept || '',
+      duration_seconds: requirements?.duration || 30,
+      aspect_ratios: requirements?.aspect_ratio ? [requirements.aspect_ratio] : ['16:9'],
+      rawIdea: selectedDirection?.concept || requirements?.objective || '',
+      generatedByAI: true
+    };
+    
+    sessionStorage.setItem('cinegen_decision_room_draft', JSON.stringify(briefDraft));
+    router.push('/briefs/new?from=decision-room');
   };
   
   const toggleExpanded = (creatorId: string) => {
@@ -275,6 +308,35 @@ export default function StageEvidence({ roomId, selectedCreatorId, onSelectCreat
           );
         })}
       </div>
+      
+      {/* Create Brief Button - shows when creator is selected */}
+      {selectedCreatorId && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-8 p-6 bg-gradient-to-r from-violet-500/20 to-cyan-500/20 border border-violet-500/30 rounded-xl"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                Ready to Create Your Brief
+              </h3>
+              <p className="text-sm text-gray-300 mb-4">
+                You've selected your creative direction and chosen a creator. 
+                Create a brief to send proposals and start working together.
+              </p>
+              <button
+                onClick={handleCreateBrief}
+                className="px-6 py-3 bg-gradient-to-r from-violet-600 to-cyan-600 text-white font-semibold rounded-lg hover:from-violet-700 hover:to-cyan-700 transition-all flex items-center gap-2"
+              >
+                Create Brief with This Direction
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }

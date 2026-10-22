@@ -454,3 +454,17 @@ export interface RequirementStatus {
   value: any;
   status: 'confirmed' | 'suggested' | 'missing';
 }
+
+export interface InspectionCheck {
+  requirement: string;
+  actual: string;
+  expected: string;
+  passed: boolean;
+}
+
+export interface InspectionResult {
+  status: 'pass' | 'fail' | 'unsupported' | 'error';
+  checks: InspectionCheck[];
+  metadata: Record<string, any>;
+  message?: string;
+}

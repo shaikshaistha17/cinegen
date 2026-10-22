@@ -91,7 +91,7 @@ function NewBriefPageContent() {
   const [newKeyword, setNewKeyword] = useState("");
   const [newRegion, setNewRegion] = useState("");
 
-  // Check for voice draft on mount
+  // Check for voice draft or decision room draft on mount
   useEffect(() => {
     const fromVoice = searchParams.get("from");
     if (fromVoice === "voice") {
@@ -111,6 +111,38 @@ function NewBriefPageContent() {
           sessionStorage.removeItem("cinegen_voice_draft");
         } catch (e) {
           console.error("Failed to load voice draft:", e);
+        }
+      }
+    } else if (fromVoice === "decision-room") {
+      const roomDraft = sessionStorage.getItem("cinegen_decision_room_draft");
+      if (roomDraft) {
+        try {
+          const draft = JSON.parse(roomDraft);
+          setForm((prev) => ({
+            ...prev,
+            campaignTitle: draft.campaign_title || prev.campaignTitle,
+            objective: draft.objective || prev.objective,
+            contentType: draft.content_type || prev.contentType,
+            budgetMin: draft.budget_min || prev.budgetMin,
+            budgetMax: draft.budget_max || prev.budgetMax,
+            deadline: draft.deadline || prev.deadline,
+            toolsPreferred: draft.tools_preferred || prev.toolsPreferred,
+            style: draft.style || prev.style,
+            durationSeconds: draft.duration_seconds || prev.durationSeconds,
+            aspectRatios: draft.aspect_ratios || prev.aspectRatios,
+            generatedByAI: draft.generatedByAI || false,
+            rawIdea: draft.rawIdea || "From Decision Room",
+          }));
+          setMode("manual");
+          toast.success("✨ Decision Room draft loaded!");
+          // Store decision_room_id for later
+          if (draft.decision_room_id) {
+            sessionStorage.setItem("cinegen_decision_room_id", draft.decision_room_id);
+          }
+          // Clear the draft from storage
+          sessionStorage.removeItem("cinegen_decision_room_draft");
+        } catch (e) {
+          console.error("Failed to load decision room draft:", e);
         }
       }
     }
@@ -164,7 +196,7 @@ function NewBriefPageContent() {
     }
   };
 
-  const handleSave = (status: "Draft" | "Open") => {
+  const handleSave = async (status: "Draft" | "Open") => {
     if (!form.campaignTitle.trim()) { toast.error("Please add a campaign title"); return; }
     if (!session) { toast.error("Please log in first"); return; }
 
@@ -178,6 +210,22 @@ function NewBriefPageContent() {
       updatedAt: new Date().toISOString(),
     };
     saveBrief(brief);
+    
+    // Link back to decision room if it exists
+    const decisionRoomId = sessionStorage.getItem("cinegen_decision_room_id");
+    if (decisionRoomId) {
+      try {
+        await fetch(`/api/decision-room/${decisionRoomId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ linked_brief_id: brief.id })
+        });
+        sessionStorage.removeItem("cinegen_decision_room_id");
+      } catch (e) {
+        console.error("Failed to link brief to decision room:", e);
+      }
+    }
+    
     if (status === "Open") {
       setPublished(brief.id);
       toast.success("Brief published! Finding top creator matches...");

@@ -25,6 +25,19 @@ export default function DecisionRoomClient({ roomId }: DecisionRoomClientProps) 
   const [room, setRoom] = useState<DecisionRoom | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedStage, setExpandedStage] = useState<string>('idea');
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  
+  // Check for reduced motion preference
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+      setPrefersReducedMotion(mediaQuery.matches);
+      
+      const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
+      mediaQuery.addEventListener('change', handler);
+      return () => mediaQuery.removeEventListener('change', handler);
+    }
+  }, []);
   
   useEffect(() => {
     fetchRoom();
@@ -128,8 +141,8 @@ export default function DecisionRoomClient({ roomId }: DecisionRoomClientProps) 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={prefersReducedMotion ? {} : { opacity: 0, y: -20 }}
+          animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
           className="text-center space-y-2"
         >
           <h1 className="text-4xl font-bold text-white">
@@ -151,9 +164,9 @@ export default function DecisionRoomClient({ roomId }: DecisionRoomClientProps) 
             return (
               <motion.div
                 key={stage.key}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
+                initial={prefersReducedMotion ? {} : { opacity: 0, x: -20 }}
+                animate={prefersReducedMotion ? {} : { opacity: 1, x: 0 }}
+                transition={prefersReducedMotion ? {} : { delay: index * 0.1 }}
                 className={`bg-white/5 border rounded-xl overflow-hidden transition-all ${
                   isComplete ? 'border-green-500/30' : 'border-white/10'
                 } ${!isAccessible ? 'opacity-50' : ''}`}
@@ -161,8 +174,17 @@ export default function DecisionRoomClient({ roomId }: DecisionRoomClientProps) 
                 {/* Stage Header */}
                 <button
                   onClick={() => isAccessible && toggleStage(stage.key)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      if (isAccessible) toggleStage(stage.key);
+                    } else if (e.key === 'Escape' && isExpanded) {
+                      e.preventDefault();
+                      setExpandedStage('');
+                    }
+                  }}
                   disabled={!isAccessible}
-                  className="w-full px-6 py-4 flex items-center justify-between hover:bg-white/5 transition-colors disabled:cursor-not-allowed"
+                  className="w-full px-6 py-4 flex items-center justify-between hover:bg-white/5 transition-colors disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 focus:ring-offset-gray-900"
                   aria-expanded={isExpanded}
                   aria-controls={`stage-${stage.key}`}
                 >
@@ -198,10 +220,10 @@ export default function DecisionRoomClient({ roomId }: DecisionRoomClientProps) 
                   {isExpanded && isAccessible && (
                     <motion.div
                       id={`stage-${stage.key}`}
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.3 }}
+                      initial={prefersReducedMotion ? {} : { opacity: 0, height: 0 }}
+                      animate={prefersReducedMotion ? {} : { opacity: 1, height: 'auto' }}
+                      exit={prefersReducedMotion ? {} : { opacity: 0, height: 0 }}
+                      transition={prefersReducedMotion ? {} : { duration: 0.3 }}
                       className="border-t border-white/10"
                     >
                       <div className="p-6">
@@ -227,6 +249,8 @@ export default function DecisionRoomClient({ roomId }: DecisionRoomClientProps) 
                             roomId={roomId}
                             selectedCreatorId={room.selected_creator_id}
                             onSelectCreator={handleSelectCreator}
+                            requirements={room.requirements}
+                            selectedDirection={room.selected_direction}
                           />
                         )}
                         
