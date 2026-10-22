@@ -20,6 +20,7 @@ import {
   getDefaultVoiceForLanguage,
   type VoiceIdentity
 } from "@/lib/voice/languages";
+import { getTranslations } from "@/lib/voice/translations";
 
 type AssistantState = 
   | "off"           // Not started
@@ -44,12 +45,15 @@ export default function CineGenDirector() {
   const router = useRouter();
   const prefersReducedMotion = useReducedMotion();
   const { user } = useAuth();
+  const displayName = user?.name || "";
   
   // State
   const [state, setState] = useState<AssistantState>("off");
   const [transcript, setTranscript] = useState("");
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
-  const [conversationHistory, setConversationHistory] = useState<ConversationMessage[]>([]);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [loadingConversation, setLoadingConversation] = useState(true);
+  const [savingStatus, setSavingStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [campaignDraft, setCampaignDraft] = useState<CampaignDraft | null>(null);
   const [sessionId] = useState(() => crypto.randomUUID());
   const [isMuted, setIsMuted] = useState(false);
@@ -71,6 +75,10 @@ export default function CineGenDirector() {
   // New voice settings state
   const [inputLanguage, setInputLanguage] = useState("en-IN");
   const [replyLanguage, setReplyLanguage] = useState("en-US");
+  
+  // Get translations based on reply language
+  const t = getTranslations(replyLanguage);
+  
   const [showSettingsPanel, setShowSettingsPanel] = useState(false);
   const [showAllVoices, setShowAllVoices] = useState(false);
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
@@ -81,6 +89,7 @@ export default function CineGenDirector() {
   const synthRef = useRef<SpeechSynthesisUtterance | null>(null);
   const isProcessingRef = useRef(false);
   const wakeWordDetectedRef = useRef(false);
+  const lastUserMessageRef = useRef<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const timingRef = useRef<TimingMetrics>({});
   const errorRetryCountRef = useRef(0);
@@ -102,6 +111,57 @@ export default function CineGenDirector() {
     if (savedInputLang) setInputLanguage(savedInputLang);
     if (savedReplyLang) setReplyLanguage(savedReplyLang);
   }, []);
+  
+  // Load latest active conversation on mount
+  useEffect(() => {
+    if (!user) {
+      setLoadingConversation(false);
+      return;
+    }
+    
+    async function loadLatestConversation() {
+      setLoadingConversation(true);
+      try {
+        const res = await fetch('/api/director/conversations');
+        if (!res.ok) {
+          console.error('Failed to load conversations:', await res.text());
+          setLoadingConversation(false);
+          return;
+        }
+        
+        const data = await res.json();
+        const conversations = data.conversations || [];
+        
+        if (conversations.length > 0) {
+          // Load most recent active conversation
+          const latest = conversations[0];
+          setConversationId(latest.id);
+          
+          // Load messages
+          const msgRes = await fetch(`/api/director/conversations/${latest.id}`);
+          if (msgRes.ok) {
+            const msgData = await msgRes.json();
+            const loadedMessages = (msgData.messages || []).map((m: any) => ({
+              role: m.role,
+              text: m.content,
+              timestamp: Date.parse(m.created_at)
+            }));
+            setMessages(loadedMessages);
+          }
+        } else {
+          // No conversations yet — will be created on first message
+          setConversationId(null);
+          setMessages([]);
+        }
+      } catch (error) {
+        console.error('Failed to load conversation:', error);
+      } finally {
+        setLoadingConversation(false);
+      }
+    }
+    
+    loadLatestConversation();
+  }, [user]);
   
   // Load voices and handle voice selection
   useEffect(() => {
@@ -248,41 +308,194 @@ export default function CineGenDirector() {
     
     utterance.onend = () => {
       console.log("[Speech] Ended");
-      // Resume listening if still in active session and not in typing mode
-      // Keep wake word detected since user already woke the assistant
-      if (recognitionRef.current && !typingMode) {
-        setState((prevState) => {
+      // Check if assistant is still active before resuming listening
+      setState((prevState) => {
+        // Don't restart if user stopped the assistant
+        if (prevState === "off") {
+          console.log("[Speech] Assistant stopped - not restarting listening");
+          return "off";
+        }
+        
+        // Resume listening if still in active session and not in typing mode
+        if (recognitionRef.current && !typingMode) {
           console.log(`[State] ${prevState} → listening (timestamp: ${new Date().toISOString()})`);
+          setTimeout(() => startRecognitionRef.current(), 100);
           return "listening";
-        });
-        startRecognitionRef.current();
-      } else if (typingMode) {
-        setState((prevState) => {
+        } else if (typingMode) {
           console.log(`[State] ${prevState} → off (timestamp: ${new Date().toISOString()})`);
           return "off";
-        });
-      }
+        }
+        
+        return prevState;
+      });
     };
     
     utterance.onerror = () => {
       console.log("[Speech] Error");
-      if (recognitionRef.current && !typingMode) {
-        setState((prevState) => {
-          console.log(`[State] ${prevState} → listening (timestamp: ${new Date().toISOString()})`);
-          return "listening";
-        });
-        startRecognitionRef.current();
-      } else if (typingMode) {
-        setState((prevState) => {
-          console.log(`[State] ${prevState} → off (timestamp: ${new Date().toISOString()})`);
+      setState((prevState) => {
+        // Don't restart if user stopped
+        if (prevState === "off") {
           return "off";
-        });
-      }
+        }
+        
+        if (recognitionRef.current && !typingMode) {
+          console.log(`[State] ${prevState} → listening (timestamp: ${new Date().toISOString()})`);
+          setTimeout(() => startRecognitionRef.current(), 100);
+          return "listening";
+        }
+        return prevState;
+      });
     };
     
     synthRef.current = utterance;
     window.speechSynthesis.speak(utterance);
   }, [isMuted, typingMode, selectedVoice]);
+  
+  // Unified message handler for both voice and text - routes ALL messages to AI backend
+  const handleUserMessage = useCallback(async (userText: string, isVoiceInput: boolean = false) => {
+    if (!userText || userText.trim().length === 0) return;
+    
+    const trimmedText = userText.trim();
+    
+    // Start processing
+    isProcessingRef.current = true;
+    setState("processing");
+    setSavingStatus('saving');
+    
+    // Add user message to conversation (optimistic UI)
+    const userMessage: ConversationMessage = {
+      role: "user",
+      text: trimmedText,
+      timestamp: Date.now()
+    };
+    
+    setMessages(prev => [...prev, userMessage]);
+    
+    try {
+      // Cancel any previous request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      
+      // Store message for potential retry
+      lastUserMessageRef.current = trimmedText;
+      
+      abortControllerRef.current = new AbortController();
+      
+      const response = await fetch("/api/director/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          message: trimmedText,
+          conversationId,  // Pass existing ID or null for new conversation
+          replyLanguage: replyLanguage,
+          inputSource: isVoiceInput ? 'voice' : 'text'
+        }),
+        signal: abortControllerRef.current.signal
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to generate response");
+      }
+      
+      const data = await response.json();
+      
+      // If new conversation, save the ID
+      if (data.conversationId && !conversationId) {
+        setConversationId(data.conversationId);
+      }
+      
+      // Check for error response
+      if (data.error) {
+        const errorText = data.reply || "The AI service is temporarily busy. Please try again shortly.";
+        setErrorMessage(errorText);
+        setState("error");
+        setSavingStatus('error');
+        
+        const errorMsg: ConversationMessage = {
+          role: "assistant",
+          text: errorText,
+          timestamp: Date.now()
+        };
+        setMessages(prev => [...prev, errorMsg]);
+        
+        // Speak error if not muted
+        if (!isMuted || isVoiceInput) {
+          speak(errorText);
+        }
+        return;
+      }
+      
+      // Add assistant response to conversation
+      const assistantMessage: ConversationMessage = {
+        role: "assistant",
+        text: data.reply,
+        timestamp: Date.now()
+      };
+      
+      setMessages(prev => [...prev, assistantMessage]);
+      setSavingStatus('saved');
+      
+      // Reset saved status after 2 seconds
+      setTimeout(() => setSavingStatus('idle'), 2000);
+      
+      // Update campaign draft if present
+      if (data.campaignDraft) {
+        setCampaignDraft(prev => ({
+          ...prev,
+          ...data.campaignDraft
+        }));
+      }
+      
+      // Execute action if present
+      if (data.action && data.action !== "none") {
+        executeAction(data.action, data.campaignDraft);
+      }
+      
+      // Speak the response if not muted
+      if (!isMuted || isVoiceInput) {
+        speak(data.reply);
+      }
+      
+      errorRetryCountRef.current = 0; // Reset error counter on success
+      
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.log('[Request] Aborted previous request');
+        return;
+      }
+      
+      const errorText = "I encountered an error. Would you like to try again?";
+      setErrorMessage(errorText);
+      setState("error");
+      setSavingStatus('error');
+      const errorMsg: ConversationMessage = {
+        role: "assistant",
+        text: errorText,
+        timestamp: Date.now()
+      };
+      setMessages(prev => [...prev, errorMsg]);
+      
+      if (!isMuted || isVoiceInput) {
+        speak(errorText);
+      }
+    } finally {
+      isProcessingRef.current = false;
+      abortControllerRef.current = null;
+      
+      // Return to appropriate state
+      if (isVoiceInput && recognitionRef.current) {
+        setState("listening");
+      } else {
+        setState("off");
+      }
+    }
+  }, [conversationId, replyLanguage, speak, isMuted, router, user]);
+  
+  // Trigger executeAction after response (called inline in handleUserMessage)
+  useEffect(() => {
+    // No-op - executeAction called directly in handler
+  }, []);
   
   // Execute action with safety checks
   const executeAction = useCallback((action: DirectorAction, payload?: any) => {
@@ -320,11 +533,9 @@ export default function CineGenDirector() {
     }
   }, [router, campaignDraft]);
   
-  // Process campaign idea or message or message
+  // Process campaign idea or message - delegates to unified handler
   const processCampaignIdea = useCallback(async (idea: string) => {
     if (isProcessingRef.current) return;
-    isProcessingRef.current = true;
-    setState("processing");
     
     timingRef.current.requestStartTime = performance.now();
     
@@ -334,105 +545,19 @@ export default function CineGenDirector() {
       console.log(`[Timing] Command end → Request start: ${delta.toFixed(0)}ms`);
     }
     
-    // Add user message to both message lists
-    const userMessage: ConversationMessage = {
-      role: "user",
-      text: idea,
-      timestamp: Date.now()
-    };
-    
-    setMessages(prev => [...prev, userMessage]);
-    setConversationHistory(prev => {
-      const updated = [...prev, userMessage];
-      // Bound to last 20 messages
-      return updated.slice(-20);
-    });
-    
-    try {
-      // Cancel any previous request
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-      
-      abortControllerRef.current = new AbortController();
-      
-      const response = await fetch("/api/director/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          message: idea,
-          sessionId,
-          conversationHistory: conversationHistory,
-          replyLanguage: replyLanguage
-        }),
-        signal: abortControllerRef.current.signal
-      });
-      
-      timingRef.current.responseReadyTime = performance.now();
-      
-      // Log timing: request start to response ready
-      if (timingRef.current.requestStartTime) {
-        const delta = timingRef.current.responseReadyTime - timingRef.current.requestStartTime;
-        console.log(`[Timing] Request start → Response ready: ${delta.toFixed(0)}ms`);
-      }
-      
-      if (!response.ok) {
-        throw new Error("Failed to generate response");
-      }
-      
-      const data = await response.json();
-      
-      // Add assistant response to conversation
-      const assistantMessage: ConversationMessage = {
-        role: "assistant",
-        text: data.reply,
-        timestamp: Date.now()
-      };
-      
-      setMessages(prev => [...prev, assistantMessage]);
-      setConversationHistory(prev => {
-        const updated = [...prev, assistantMessage];
-        return updated.slice(-20);
-      });
-      
-      // Update campaign draft if present
-      if (data.campaignDraft) {
-        setCampaignDraft(prev => ({
-          ...prev,
-          ...data.campaignDraft
-        }));
-      }
-      
-      // Execute action if present
-      if (data.action && data.action !== "none") {
-        executeAction(data.action, data.campaignDraft);
-      }
-      
-      // Speak the response
-      speak(data.reply);
-      errorRetryCountRef.current = 0; // Reset error counter on success
-      
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
-        console.log('[Request] Aborted previous request');
-        return; // Don't show error for intentionally cancelled requests
-      }
-      
-      const errorText = "I encountered an error. Would you like to try again?";
-      setErrorMessage(errorText);
-      setState("error");
-      const errorMsg: ConversationMessage = {
-        role: "assistant",
-        text: errorText,
-        timestamp: Date.now()
-      };
-      setMessages(prev => [...prev, errorMsg]);
-      speak(errorText);
-    } finally {
-      isProcessingRef.current = false;
-      abortControllerRef.current = null;
+    // Delegate to unified message handler
+    await handleUserMessage(idea, true); // true = voice input
+  }, [handleUserMessage]);
+  
+  // Retry last user message
+  const retryLastMessage = useCallback(() => {
+    if (lastUserMessageRef.current && !isProcessingRef.current) {
+      setErrorMessage("");
+      const message = lastUserMessageRef.current;
+      // Delegate to unified message handler
+      handleUserMessage(message, false); // false = not voice input (it's a retry)
     }
-  }, [speak, sessionId, conversationHistory, replyLanguage]);
+  }, [handleUserMessage]);
   
   // Start recognition
   const startRecognition = useCallback(() => {
@@ -492,7 +617,7 @@ export default function CineGenDirector() {
         }
       }
       
-      console.log(`[Recognition] Result: interim=${hasInterim}, final=${hasFinal}`);
+      console.log(`[Recognition] Result: interim=${hasInterim}, final=${hasFinal}, wake=${wakeWordDetectedRef.current}, processing=${isProcessingRef.current}`);
       
       const currentText = (finalTranscript + interimTranscript).trim();
       const currentTextLower = currentText.toLowerCase();
@@ -500,8 +625,27 @@ export default function CineGenDirector() {
       // Show interim transcription for immediate feedback
       setTranscript(currentText);
       
-      // Check for wake word (only if we haven't detected it yet)
-      if (!wakeWordDetectedRef.current) {
+      // Process finalized speech when ready (wake word not required if already in listening mode)
+      if (finalTranscript.trim() && !isProcessingRef.current && wakeWordDetectedRef.current) {
+        const cleanIdea = finalTranscript.trim();
+        console.log(`[Recognition] Processing finalized speech: "${cleanIdea}"`);
+        
+        // Handle simple local commands without API call
+        const lowerIdea = cleanIdea.toLowerCase();
+        if (lowerIdea === 'stop' || lowerIdea === 'cancel' || lowerIdea === 'quit') {
+          handleStop();
+          return;
+        }
+        
+        // Process real conversation using unified handler
+        if (cleanIdea.length > 0) {
+          timingRef.current.commandEndTime = performance.now();
+          handleUserMessage(cleanIdea, true); // true = voice input
+        }
+      }
+      
+      // Also check for wake word in interim/ongoing speech (for wake-word mode if needed later)
+      if (!wakeWordDetectedRef.current && isWakePhrase(currentTextLower)) {
         if (isWakePhrase(currentTextLower)) {
           wakeWordDetectedRef.current = true;
           timingRef.current.wakeDetectedTime = performance.now();
@@ -532,11 +676,48 @@ export default function CineGenDirector() {
           if (commandAfterWake.length > 5) {
             setTranscript(commandAfterWake);
             timingRef.current.commandEndTime = performance.now();
-            processCampaignIdea(commandAfterWake);
+            handleUserMessage(commandAfterWake, true); // Use unified handler
           } else {
-            // No command, just greet with first message (empty history)
+            // No command, just greet locally (no AI request needed for wake-only)
             setTranscript("");
-            processCampaignIdea("Hello");
+            const localGreeting = replyLanguage.startsWith('te') ? "నమస్కారం! మీరు ఏమి చేయాలనుకుంటున్నారు?"
+              : replyLanguage.startsWith('hi') ? "नमस्ते! आप क्या करना चाहते हैं?"
+              : replyLanguage.startsWith('mr') ? "नमस्कार! तुम्हाला काय करायचे आहे?"
+              : "Hello! What would you like to do?";
+            
+            const greetingMsg: ConversationMessage = {
+              role: "assistant",
+              text: localGreeting,
+              timestamp: Date.now()
+            };
+            setMessages(prev => [...prev, greetingMsg]);
+            
+            // Speak the greeting if not muted
+            if (!isMuted && 'speechSynthesis' in window) {
+              window.speechSynthesis.cancel();
+              const utterance = new SpeechSynthesisUtterance(localGreeting);
+              utterance.lang = replyLanguage;
+              if (selectedVoice) {
+                utterance.voice = selectedVoice;
+              }
+              utterance.onend = () => {
+                setState((prevState) => {
+                  console.log(`[State] ${prevState} → listening (timestamp: ${new Date().toISOString()})`);
+                  return "listening";
+                });
+              };
+              window.speechSynthesis.speak(utterance);
+              setState((prevState) => {
+                console.log(`[State] ${prevState} → speaking (timestamp: ${new Date().toISOString()})`);
+                return "speaking";
+              });
+            } else {
+              // If muted, go directly to listening state
+              setState((prevState) => {
+                console.log(`[State] ${prevState} → listening (timestamp: ${new Date().toISOString()})`);
+                return "listening";
+              });
+            }
           }
         }
       }
@@ -599,7 +780,7 @@ export default function CineGenDirector() {
       console.log(`[Recognition] Error: ${event.error}`);
       
       if (event.error === "not-allowed") {
-        setErrorMessage("Microphone access denied. Please grant permission to use voice.");
+        setErrorMessage(t.errorMicDenied);
         setState((prevState) => {
           console.log(`[State] ${prevState} → error (timestamp: ${new Date().toISOString()})`);
           return "error";
@@ -607,7 +788,7 @@ export default function CineGenDirector() {
         errorRetryCountRef.current = 999; // Don't retry permission errors
       } else if (event.error === "language-not-supported") {
         const langName = getLanguageName(inputLanguage);
-        setErrorMessage(`${langName} speech recognition is not supported on this device. Try English or use Type instead.`);
+        setErrorMessage(`${langName} ${t.errorLanguageNotSupported}`);
         setState((prevState) => {
           console.log(`[State] ${prevState} → error (timestamp: ${new Date().toISOString()})`);
           return "error";
@@ -628,7 +809,7 @@ export default function CineGenDirector() {
           }, 100);
         }
       } else if (event.error === "network") {
-        setErrorMessage("Network error. Please check your connection.");
+        setErrorMessage(t.errorNetwork);
         setState((prevState) => {
           console.log(`[State] ${prevState} → error (timestamp: ${new Date().toISOString()})`);
           return "error";
@@ -643,7 +824,7 @@ export default function CineGenDirector() {
             }
           }, 500);
         } else {
-          setErrorMessage("Speech recognition error. Please try again.");
+          setErrorMessage(t.errorGeneric);
           setState((prevState) => {
             console.log(`[State] ${prevState} → error (timestamp: ${new Date().toISOString()})`);
             return "error";
@@ -709,7 +890,7 @@ export default function CineGenDirector() {
   // Enable voice button handler
   const handleEnableVoice = useCallback(async () => {
     if (!isSupported) {
-      setErrorMessage("Voice features are not supported in this browser. Please try Chrome or Edge.");
+      setErrorMessage(t.errorNotSupported);
       setState("error");
       return;
     }
@@ -720,26 +901,27 @@ export default function CineGenDirector() {
       // Request microphone permission
       await navigator.mediaDevices.getUserMedia({ audio: true });
       
+      // Start in listening mode (ready for direct conversation)
       setState((prevState) => {
-        console.log(`[State] ${prevState} → awaiting_wake (timestamp: ${new Date().toISOString()})`);
-        return "awaiting_wake";
+        console.log(`[State] ${prevState} → listening (direct conversation mode) (timestamp: ${new Date().toISOString()})`);
+        return "listening";
       });
-      wakeWordDetectedRef.current = false;
+      wakeWordDetectedRef.current = true; // Enable direct conversation
       setErrorMessage("");
       errorRetryCountRef.current = 0;
-      setTypingMode(false); // Disable typing mode when enabling voice
+      setTypingMode(false);
       
       // Clear previous messages to start fresh
       setMessages([]);
       
-      // Start recognition immediately - no long greeting to block input
+      // Start recognition immediately
       startRecognitionRef.current();
       
     } catch (error: any) {
-      setErrorMessage("Microphone access denied. Please grant permission to use voice features.");
+      setErrorMessage(t.errorMicDenied);
       setState("error");
     }
-  }, [isSupported]);
+  }, [isSupported, t]);
   
   // Stop voice session
   const handleStop = useCallback(() => {
@@ -763,6 +945,9 @@ export default function CineGenDirector() {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
+    
+    // Clear last user message ref to prevent retry, but keep conversation history visible
+    lastUserMessageRef.current = null;
     
     setState((prevState) => {
       console.log(`[State] ${prevState} → off (timestamp: ${new Date().toISOString()})`);
@@ -827,9 +1012,9 @@ export default function CineGenDirector() {
       updateLevel();
       
     } catch (error) {
-      setErrorMessage("Could not access microphone. Please check permissions.");
+      setErrorMessage(t.errorMicCheck);
     }
-  }, []);
+  }, [t]);
   
   const handleStopMicCheck = useCallback(() => {
     // Stop animation
@@ -879,21 +1064,22 @@ export default function CineGenDirector() {
     if (messages.length === 0) {
       const welcomeMsg: ConversationMessage = {
         role: "assistant",
-        text: "Type your campaign idea or question below. Press Enter to send, Shift+Enter for a new line.",
+        text: t.typingWelcome,
         timestamp: Date.now()
       };
       setMessages([welcomeMsg]);
     }
-  }, [messages.length]);
+  }, [messages.length, t]);
   
   // Send typed message
+  // Send typed message using unified handler
   const handleSendTyped = useCallback(() => {
     const trimmed = typedInput.trim();
     if (!trimmed || isProcessingRef.current) return;
     
-    processCampaignIdea(trimmed);
-    setTypedInput("");
-  }, [typedInput, processCampaignIdea]);
+    setTypedInput(""); // Clear input
+    handleUserMessage(trimmed, false); // false = text input
+  }, [typedInput, handleUserMessage]);
   
   // Handle textarea key press
   const handleTypedKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -1054,12 +1240,12 @@ export default function CineGenDirector() {
   };
   
   const stateLabels = {
-    off: "Off",
-    awaiting_wake: 'Ready—say Hey CineGen or tap Talk now',
-    listening: "Listening...",
-    processing: "Thinking...",
-    speaking: "Speaking...",
-    error: "Error"
+    off: t.stateOff,
+    awaiting_wake: t.stateAwaitingWake,
+    listening: t.stateListening,
+    processing: t.stateProcessing,
+    speaking: t.stateSpeaking,
+    error: t.stateError
   };
   
   const stateColors = {
@@ -1136,12 +1322,12 @@ export default function CineGenDirector() {
           
           {/* Headline */}
           <p className="text-center text-lg font-semibold mb-2">
-            {typingMode ? "Type your idea." : "Your idea. Say it out loud."}
+            {typingMode ? t.headlineTyping : t.headlineVoice}
           </p>
           
           {/* Supporting text */}
           <p className="text-center text-sm text-gray-300 mb-6">
-            Describe your campaign. Shape your brief.
+            {t.supportingText}
           </p>
           
           {/* Voice & Language Settings (shown when off and not in typing mode) */}
@@ -1155,7 +1341,7 @@ export default function CineGenDirector() {
               >
                 <div className="flex items-center gap-2">
                   <Settings className="w-4 h-4 text-violet-400" />
-                  <span className="text-sm font-semibold text-violet-300">Voice & Language Settings</span>
+                  <span className="text-sm font-semibold text-violet-300">{t.settingsTitle}</span>
                 </div>
                 {showSettingsPanel ? (
                   <ChevronUp className="w-4 h-4 text-violet-400" />
@@ -1175,9 +1361,9 @@ export default function CineGenDirector() {
                     {/* Section 1: I speak (input language) */}
                     <div className="p-3 bg-violet-500/5 border border-violet-500/20 rounded-lg">
                       <label className="text-xs font-semibold text-violet-300 block mb-1">
-                        I speak
+                        {t.labelInputLanguage}
                       </label>
-                      <p className="text-xs text-gray-400 mb-2">(language you speak to CineGen)</p>
+                      <p className="text-xs text-gray-400 mb-2">{t.inputLanguageDesc}</p>
                       <select
                         value={inputLanguage}
                         onChange={(e) => {
@@ -1202,9 +1388,9 @@ export default function CineGenDirector() {
                     {/* Section 2: Reply language */}
                     <div className="p-3 bg-violet-500/5 border border-violet-500/20 rounded-lg">
                       <label className="text-xs font-semibold text-violet-300 block mb-1">
-                        Reply language
+                        {t.labelReplyLanguage}
                       </label>
-                      <p className="text-xs text-gray-400 mb-2">(language for text responses)</p>
+                      <p className="text-xs text-gray-400 mb-2">{t.replyLanguageDesc}</p>
                       <select
                         value={replyLanguage}
                         onChange={(e) => {
@@ -1233,9 +1419,9 @@ export default function CineGenDirector() {
                     {/* Section 3: Speaking voice */}
                     <div className="p-3 bg-violet-500/5 border border-violet-500/20 rounded-lg">
                       <label className="text-xs font-semibold text-violet-300 block mb-1">
-                        Speaking voice
+                        {t.labelSpeakingVoice}
                       </label>
-                      <p className="text-xs text-gray-400 mb-2">(text-to-speech voice)</p>
+                      <p className="text-xs text-gray-400 mb-2">{t.speakingVoiceDesc}</p>
                       
                       {(() => {
                         const filteredVoices = filterVoicesByLanguage(availableVoices, replyLanguage, showAllVoices);
@@ -1246,10 +1432,10 @@ export default function CineGenDirector() {
                               <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
                               <div>
                                 <p className="text-xs text-amber-300">
-                                  No speaking voice available for {getLanguageName(replyLanguage)} on this device.
+                                  {t.noVoiceAvailable.replace("{lang}", getLanguageName(replyLanguage))}
                                 </p>
                                 <p className="text-xs text-gray-400 mt-1">
-                                  Text replies will still work.
+                                  {t.textOnlyMode}
                                 </p>
                               </div>
                             </div>
@@ -1282,7 +1468,7 @@ export default function CineGenDirector() {
                                   className="flex-1 px-3 py-1.5 text-xs bg-violet-600 text-white rounded hover:bg-violet-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-violet-400"
                                   aria-label="Preview voice pronunciation"
                                 >
-                                  Preview
+                                  {t.buttonPreview}
                                 </button>
                               ) : (
                                 <button
@@ -1290,7 +1476,7 @@ export default function CineGenDirector() {
                                   className="flex-1 px-3 py-1.5 text-xs bg-red-600 text-white rounded hover:bg-red-500 transition-all focus-visible:ring-2 focus-visible:ring-red-400"
                                   aria-label="Stop preview"
                                 >
-                                  Stop preview
+                                  {t.buttonStopPreview}
                                 </button>
                               )}
                             </div>
@@ -1302,7 +1488,7 @@ export default function CineGenDirector() {
                                 onChange={(e) => setShowAllVoices(e.target.checked)}
                                 className="rounded border-white/10 bg-background/50 text-violet-600 focus:ring-2 focus:ring-violet-400"
                               />
-                              Show all device voices
+                              {t.showAllVoices}
                             </label>
                           </>
                         );
@@ -1331,10 +1517,33 @@ export default function CineGenDirector() {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
-                className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-2"
+                className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg"
               >
-                <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-red-300">{errorMessage}</p>
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-xs text-red-300 mb-2">{errorMessage}</p>
+                    {state === "error" && (
+                      <button
+                        onClick={() => {
+                          if (lastUserMessageRef.current) {
+                            // Retry last message if available (API error)
+                            retryLastMessage();
+                          } else {
+                            // Restart voice recognition (mic error)
+                            setErrorMessage("");
+                            errorRetryCountRef.current = 0;
+                            handleEnableVoice();
+                          }
+                        }}
+                        disabled={!lastUserMessageRef.current} // Disable if no message to retry
+                        className="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {t.buttonRetry}
+                      </button>
+                    )}
+                  </div>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -1378,6 +1587,21 @@ export default function CineGenDirector() {
                         {msg.role === "assistant" ? "Director" : "You"}
                       </span>
                       <p className="text-sm leading-relaxed">{msg.text}</p>
+                      
+                      {/* Retry button for error messages */}
+                      {msg.role === "assistant" && msg.text.includes("temporarily busy") && lastUserMessageRef.current && (
+                        <button
+                          onClick={() => {
+                            if (lastUserMessageRef.current) {
+                              handleUserMessage(lastUserMessageRef.current, false);
+                            }
+                          }}
+                          disabled={isProcessingRef.current}
+                          className="mt-2 text-xs px-3 py-1 bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/30 rounded-md transition-colors disabled:opacity-50"
+                        >
+                          Retry
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1565,7 +1789,7 @@ export default function CineGenDirector() {
                   value={typedInput}
                   onChange={(e) => setTypedInput(e.target.value)}
                   onKeyDown={handleTypedKeyDown}
-                  placeholder="Describe your campaign idea... (Enter to send, Shift+Enter for new line)"
+                  placeholder={t.typingWelcome}
                   className="w-full min-h-[100px] px-4 py-3 bg-background/50 border border-white/10 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent"
                   disabled={isProcessingRef.current}
                   autoFocus
@@ -1585,7 +1809,7 @@ export default function CineGenDirector() {
                   aria-label="Send message"
                 >
                   <Send className="w-4 h-4" />
-                  Send
+                  {t.buttonSend}
                 </button>
                 {generatedBrief && (
                   <button
@@ -1612,7 +1836,7 @@ export default function CineGenDirector() {
                   aria-label="Enable voice assistant"
                 >
                   <Mic className="w-4 h-4" />
-                  Enable voice
+                  {t.buttonEnable}
                 </button>
                 
                 {!showMicCheck && (
@@ -1632,7 +1856,7 @@ export default function CineGenDirector() {
                   aria-label="Switch to typing mode"
                 >
                   <Keyboard className="w-4 h-4" />
-                  Type instead
+                  {t.buttonTypeInstead}
                 </button>
               </>
             ) : typingMode ? (
@@ -1643,7 +1867,7 @@ export default function CineGenDirector() {
                 aria-label="Switch to voice mode"
               >
                 <Mic className="w-4 h-4" />
-                Use voice instead
+                {t.buttonUseVoice}
               </button>
             ) : state === "awaiting_wake" ? (
               <div className="space-y-2">
@@ -1654,7 +1878,7 @@ export default function CineGenDirector() {
                   aria-label="Talk now"
                 >
                   <Mic className="w-4 h-4" />
-                  Talk now
+                  {t.buttonTalkNow}
                 </button>
                 
                 {/* Main control bar */}
@@ -1684,7 +1908,7 @@ export default function CineGenDirector() {
                       aria-label="Review campaign brief"
                     >
                       <CheckCircle2 className="w-4 h-4" />
-                      Review brief
+                      {t.buttonReviewBrief || "Review brief"}
                     </button>
                   )}
                   
@@ -1694,13 +1918,12 @@ export default function CineGenDirector() {
                     aria-label="Stop voice assistant"
                   >
                     <Square className="w-4 h-4" />
-                    Stop
+                    {t.buttonStop}
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="space-y-2">
-                {/* Stop speaking / Interrupt button (when speaking) */}
+              <div className="space-y-2">{/* Stop speaking / Interrupt button (when speaking) */}
                 {state === "speaking" && (
                   <button
                     onClick={() => {
@@ -1718,7 +1941,7 @@ export default function CineGenDirector() {
                     aria-label="Stop speaking"
                   >
                     <Square className="w-4 h-4" />
-                    Stop speaking
+                    {t.buttonStopSpeaking || "Stop speaking"}
                   </button>
                 )}
                 
@@ -1779,7 +2002,7 @@ export default function CineGenDirector() {
                       aria-label="Review campaign brief"
                     >
                       <CheckCircle2 className="w-4 h-4" />
-                      Review brief
+                      {t.buttonReviewBrief || "Review brief"}
                     </button>
                   )}
                   
@@ -1806,7 +2029,7 @@ export default function CineGenDirector() {
                 className="mt-4 p-4 bg-violet-500/10 border border-violet-500/30 rounded-xl space-y-3"
               >
                 <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-semibold text-violet-300">Microphone Check</h4>
+                  <h4 className="text-sm font-semibold text-violet-300">{t.micCheckTitle || "Microphone Check"}</h4>
                   <button
                     onClick={handleStopMicCheck}
                     className="text-xs px-3 py-1 bg-red-600/20 border border-red-500/30 text-red-300 rounded hover:bg-red-600/30 transition-all"
@@ -1855,7 +2078,7 @@ export default function CineGenDirector() {
           {/* Browser support notice */}
           {!isSupported && state === "off" && !typingMode && (
             <p className="text-xs text-center text-gray-300 mt-4">
-              Voice features require Chrome or Edge. <button onClick={handleTypeInstead} className="text-cyan-400 hover:underline">Type instead</button>
+              {t.errorNotSupported.split('.')[0]}. <button onClick={handleTypeInstead} className="text-cyan-400 hover:underline">{t.buttonTypeInstead}</button>
             </p>
           )}
           

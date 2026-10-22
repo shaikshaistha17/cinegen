@@ -397,4 +397,5 @@ export interface DirectorResponse {
   action?: DirectorAction;
   campaignDraft?: CampaignDraft;
   error?: boolean;
+  retryAfterMs?: number; // Exposed retry timing for UI
 }
