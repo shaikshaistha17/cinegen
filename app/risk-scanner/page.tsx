@@ -108,7 +108,7 @@ function analyzeRisks(config: {
       level: "low",
       title: "No Major Risks Detected",
       description: "Your campaign configuration appears commercially sound based on the provided parameters.",
-      recommendation: "Always have a legal review for campaigns over $10,000 or with major brand implications.",
+      recommendation: "Always have a legal review for high-budget campaigns or with major brand implications.",
       clause: "General best practice",
     });
   }

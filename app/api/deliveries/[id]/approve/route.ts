@@ -1,105 +1,102 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import { NextRequest, NextResponse } from "next/server";
+import { createServerClient } from "@/lib/supabase-server";
 
+// POST: Approve delivery
 export async function POST(
-  request: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient();
-
+    const supabase = await createServerClient();
+    
     // Get authenticated user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
+    
+    // Get user role
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+    
+    if (userError || !userData) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+    
+    // Verify user is a brand
+    if (userData.role !== 'brand') {
+      return NextResponse.json({ error: "Only brands can approve deliveries" }, { status: 403 });
+    }
+    
     const deliveryId = params.id;
-
-    // Fetch delivery with agreement details
+    const body = await req.json();
+    const { approval_notes, waive_failed_checks } = body;
+    
+    // Get delivery
     const { data: delivery, error: deliveryError } = await supabase
       .from('deliveries')
-      .select(`
-        *,
-        agreement:agreements!inner(
-          id,
-          brand_id,
-          brief_id,
-          deliverables,
-          brand:brand_profiles!inner(user_id)
-        )
-      `)
+      .select('*, agreements!inner(id, brand_id, status)')
       .eq('id', deliveryId)
       .single();
-
+    
     if (deliveryError || !delivery) {
-      return NextResponse.json(
-        { error: 'Delivery not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Delivery not found" }, { status: 404 });
     }
-
-    // Verify user is brand (only brand can approve)
-    const brandUserId = (delivery as any).agreement.brand.user_id;
-    const isBrand = user.id === brandUserId;
-
-    if (!isBrand) {
-      return NextResponse.json(
-        { error: 'Forbidden - Only the brand can approve deliveries' },
-        { status: 403 }
-      );
+    
+    // Verify user is the brand who owns this agreement
+    if (delivery.agreements.brand_id !== user.id) {
+      return NextResponse.json({ error: "Not authorized for this delivery" }, { status: 403 });
     }
-
-    const body = await request.json();
-    const { approvalNotes, overrideReason } = body;
-
-    // Check inspection status - block failed deliveries without override
-    if (delivery.inspection_status === 'fail' && !overrideReason) {
-      return NextResponse.json(
-        { error: 'Cannot approve failed delivery without override reason' },
-        { status: 400 }
-      );
+    
+    // Check if delivery already approved
+    if (delivery.brand_approved_at) {
+      return NextResponse.json({ error: "Delivery already approved" }, { status: 400 });
     }
-
-    // Build approval notes
-    const finalNotes = overrideReason
-      ? `${approvalNotes || ''}\n\nOverride reason: ${overrideReason}`.trim()
-      : approvalNotes || null;
-
+    
+    // Check inspection status
+    if (delivery.inspection_status === 'fail' && !waive_failed_checks) {
+      return NextResponse.json({ 
+        error: "Delivery failed inspection checks. Set waive_failed_checks=true to approve anyway.",
+        inspection_results: delivery.inspection_results
+      }, { status: 400 });
+    }
+    
     // Update delivery with approval
     const { data: updatedDelivery, error: updateError } = await supabase
       .from('deliveries')
       .update({
         brand_approved_at: new Date().toISOString(),
-        approval_notes: finalNotes,
+        approval_notes: approval_notes || null
       })
       .eq('id', deliveryId)
       .select()
       .single();
-
-    if (updateError) throw updateError;
-
-    // Check if this is the final deliverable
-    const agreement = (delivery as any).agreement;
-    const expectedQuantity = agreement.deliverables.quantity || 1;
     
-    if (delivery.version >= expectedQuantity) {
-      // Update brief status to 'Delivered'
-      await supabase
-        .from('briefs')
-        .update({ status: 'Delivered' })
-        .eq('id', agreement.brief_id);
+    if (updateError) {
+      console.error('[Approve Delivery] Failed to update:', updateError);
+      return NextResponse.json({ error: "Failed to approve delivery" }, { status: 500 });
     }
-
-    return NextResponse.json({ delivery: updatedDelivery });
-  } catch (error: any) {
-    console.error('Error approving delivery:', error);
-    return NextResponse.json(
-      { error: error.message || 'Failed to approve delivery' },
-      { status: 500 }
-    );
+    
+    // Update agreement status to completed
+    const { error: agreementError } = await supabase
+      .from('agreements')
+      .update({ status: 'completed' })
+      .eq('id', delivery.agreement_id);
+    
+    if (agreementError) {
+      console.error('[Approve Delivery] Failed to update agreement:', agreementError);
+      // Continue - delivery is approved even if agreement update fails
+    }
+    
+    return NextResponse.json({ 
+      message: "Delivery approved",
+      delivery: updatedDelivery
+    });
+  } catch (err) {
+    console.error('[Approve Delivery] Error:', err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

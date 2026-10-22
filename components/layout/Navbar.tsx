@@ -46,6 +46,17 @@ export function Navbar() {
     { href: "/briefs", label: "Briefs", icon: FileText },
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   ];
+  
+  // Add Decision Room for brands only
+  const brandNavLinks = activeUser?.role === 'brand' 
+    ? [
+        { href: "/creators", label: "Discover", icon: Search },
+        { href: "/services", label: "Services", icon: Briefcase },
+        { href: "/briefs", label: "Briefs", icon: FileText },
+        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+        { href: "/decision-room", label: "Decision Room", icon: Zap },
+      ]
+    : navLinks;
 
   const toolLinks = [
     { href: "/estimator", label: "Budget Estimator", icon: Calculator, desc: "Instant AI cost estimate" },
@@ -73,7 +84,7 @@ export function Navbar() {
 
           {/* Desktop Nav Links with animated gradient underline */}
           <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
+            {(mounted ? brandNavLinks : navLinks).map((link) => (
               <Link key={link.href} href={link.href}
                 className={`relative flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                   pathname === link.href || pathname.startsWith(link.href + "/")
@@ -226,7 +237,7 @@ export function Navbar() {
             className="md:hidden border-t border-gray-200 dark:border-white/5 bg-white/95 dark:bg-[rgba(10,10,15,0.97)]"
           >
             <div className="px-4 py-3 space-y-1">
-              {navLinks.map((link) => (
+              {(mounted ? brandNavLinks : navLinks).map((link) => (
                 <Link key={link.href} href={link.href}
                   onClick={() => setMobileOpen(false)}
                   className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 transition-all">

@@ -14,6 +14,7 @@ import HeroAnimatedLines from "@/components/hero/HeroAnimatedLines";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { CreatorService } from "@/types";
 import CineGenDirector from "@/components/voice/CineGenDirector";
+import { formatCurrency } from "@/lib/utils";
 
 const ParticleBackground = dynamic(() => import("@/components/ui/ParticleBackground"), { ssr: false });
 
@@ -49,11 +50,11 @@ const HOW_IT_WORKS = [
 ];
 
 const FEATURED_CREATORS = [
-  { name: "Shaistha Shaik", handle: "@shaistha", headline: "AI Filmmaker & Cinematic Visual Storyteller", badge: "Studio", rate: 95, rating: 4.9, tools: ["Runway", "Kling", "Midjourney"], avatar: "https://picsum.photos/seed/shaistha/200/200", cover: "https://picsum.photos/seed/shaisthacover/800/300", id: "creator-001", availability: "Available" },
-  { name: "Charitha Javangula", handle: "@charitha", headline: "AI VFX Director | Epic Sci-Fi & Fantasy Visuals", badge: "Studio", rate: 150, rating: 5.0, tools: ["Sora", "Runway", "ComfyUI"], avatar: "https://picsum.photos/seed/charitha/200/200", cover: "https://picsum.photos/seed/charithacover/800/300", id: "creator-002", availability: "Available" },
-  { name: "Deekshitha Sanivarapu", handle: "@deekshitha", headline: "Music Video Director | Ethereal AI Aesthetics", badge: "Studio", rate: 130, rating: 4.9, tools: ["Higgsfield", "Runway", "Kling"], avatar: "https://picsum.photos/seed/deekshitha/200/200", cover: "https://picsum.photos/seed/deekshithacover/800/300", id: "creator-003", availability: "Available" },
-  { name: "Tanuja Gandla", handle: "@tanuja", headline: "AI Brand Storyteller | Purpose-Driven Campaigns", badge: "Verified", rate: 85, rating: 4.9, tools: ["Veo", "Runway", "ElevenLabs"], avatar: "https://picsum.photos/seed/tanuja/200/200", cover: "https://picsum.photos/seed/tanujacover/800/300", id: "creator-004", availability: "Available" },
-  { name: "Sraddha Tadivaka", handle: "@sraddha", headline: "AI Fashion Filmmaker | High-Fashion Campaigns", badge: "Verified", rate: 120, rating: 4.85, tools: ["Midjourney", "Flux", "Adobe Firefly"], avatar: "https://picsum.photos/seed/sraddha/200/200", cover: "https://picsum.photos/seed/sraddhacover/800/300", id: "creator-005", availability: "Available" },
+  { name: "Shaistha Shaik", handle: "@shaistha", headline: "AI Filmmaker & Cinematic Visual Storyteller", badge: "Studio", rate: 8000, rating: 4.9, tools: ["Runway", "Kling", "Midjourney"], avatar: "https://picsum.photos/seed/shaistha/200/200", cover: "https://picsum.photos/seed/shaisthacover/800/300", id: "creator-001", availability: "Available" },
+  { name: "Charitha Javangula", handle: "@charitha", headline: "AI VFX Director | Epic Sci-Fi & Fantasy Visuals", badge: "Studio", rate: 12000, rating: 5.0, tools: ["Sora", "Runway", "ComfyUI"], avatar: "https://picsum.photos/seed/charitha/200/200", cover: "https://picsum.photos/seed/charithacover/800/300", id: "creator-002", availability: "Available" },
+  { name: "Deekshitha Sanivarapu", handle: "@deekshitha", headline: "Music Video Director | Ethereal AI Aesthetics", badge: "Studio", rate: 10000, rating: 4.9, tools: ["Higgsfield", "Runway", "Kling"], avatar: "https://picsum.photos/seed/deekshitha/200/200", cover: "https://picsum.photos/seed/deekshithacover/800/300", id: "creator-003", availability: "Available" },
+  { name: "Tanuja Gandla", handle: "@tanuja", headline: "AI Brand Storyteller | Purpose-Driven Campaigns", badge: "Verified", rate: 7000, rating: 4.9, tools: ["Veo", "Runway", "ElevenLabs"], avatar: "https://picsum.photos/seed/tanuja/200/200", cover: "https://picsum.photos/seed/tanujacover/800/300", id: "creator-004", availability: "Available" },
+  { name: "Sraddha Tadivaka", handle: "@sraddha", headline: "AI Fashion Filmmaker | High-Fashion Campaigns", badge: "Verified", rate: 9500, rating: 4.85, tools: ["Midjourney", "Flux", "Adobe Firefly"], avatar: "https://picsum.photos/seed/sraddha/200/200", cover: "https://picsum.photos/seed/sraddhacover/800/300", id: "creator-005", availability: "Available" },
 ];
 
 const BADGE_STYLES: Record<string, string> = {
@@ -463,7 +464,7 @@ export default function HomePage() {
                           <Star className="w-3 h-3 fill-amber-400" />{creator.rating}
                         </span>
                         <span className={`font-medium ${AVAIL_COLOR[creator.availability]}`}>● {creator.availability}</span>
-                        <span className="text-foreground font-bold">${creator.rate}/hr</span>
+                        <span className="text-foreground font-bold">{formatCurrency(creator.rate)}/hr</span>
                       </div>
                     </div>
                   </div>
