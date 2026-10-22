@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Search, SlidersHorizontal, X, Star, ChevronDown, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import { useCreators } from "@/hooks/useCreators";
+import { formatCurrency } from "@/lib/utils";
 import { CreatorCard } from "@/components/creators/CreatorCard";
 import { CreatorCardSkeleton } from "@/components/creators/CreatorCardSkeleton";
 import { ContentType, AiTool, AvailabilityStatus, FilterState } from "@/types";
@@ -29,7 +30,7 @@ const DEFAULT_FILTERS: FilterState = {
   licenseTiers: [],
   availabilityStatuses: [],
   hourlyRateMin: 0,
-  hourlyRateMax: 200,
+  hourlyRateMax: 20000,
   verifiedOnly: false,
   sortBy: "relevance",
 };
@@ -98,13 +99,13 @@ export default function CreatorsPage() {
     }
 
     result = result.filter(
-      (c) => c.hourlyRateUsd >= filters.hourlyRateMin && c.hourlyRateUsd <= filters.hourlyRateMax
+      (c) => c.hourlyRate >= filters.hourlyRateMin && c.hourlyRate <= filters.hourlyRateMax
     );
 
     switch (filters.sortBy) {
       case "rating": result.sort((a, b) => b.stats.avgRating - a.stats.avgRating); break;
-      case "rate_asc": result.sort((a, b) => a.hourlyRateUsd - b.hourlyRateUsd); break;
-      case "rate_desc": result.sort((a, b) => b.hourlyRateUsd - a.hourlyRateUsd); break;
+      case "rate_asc": result.sort((a, b) => a.hourlyRate - b.hourlyRate); break;
+      case "rate_desc": result.sort((a, b) => b.hourlyRate - a.hourlyRate); break;
       case "projects": result.sort((a, b) => b.stats.projectsCompleted - a.stats.projectsCompleted); break;
       default:
         result.sort((a, b) => {
@@ -122,7 +123,7 @@ export default function CreatorsPage() {
     ...filters.specializations.map((s) => ({ label: s, remove: () => toggleArray("specializations", s) })),
     ...filters.availabilityStatuses.map((a) => ({ label: a, remove: () => toggleArray("availabilityStatuses", a) })),
     ...(filters.verifiedOnly ? [{ label: "Verified Only", remove: () => setFilter("verifiedOnly", false) }] : []),
-    ...(filters.hourlyRateMax < 200 ? [{ label: `≤ $${filters.hourlyRateMax}/hr`, remove: () => setFilter("hourlyRateMax", 200) }] : []),
+    ...(filters.hourlyRateMax < 20000 ? [{ label: `≤ ${formatCurrency(filters.hourlyRateMax)}/hr`, remove: () => setFilter("hourlyRateMax", 20000) }] : []),
   ];
 
   const hasActiveFilters = activeFilters.length > 0;
@@ -269,20 +270,20 @@ export default function CreatorsPage() {
                 {/* Rate range */}
                 <div>
                   <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                    Hourly Rate: up to ${filters.hourlyRateMax}/hr
+                    Hourly Rate: up to {formatCurrency(filters.hourlyRateMax)}/hr
                   </h3>
                   <input
                     type="range"
                     min={0}
-                    max={200}
-                    step={10}
+                    max={20000}
+                    step={500}
                     value={filters.hourlyRateMax}
                     onChange={(e) => setFilter("hourlyRateMax", Number(e.target.value))}
                     className="w-full accent-violet-500 cursor-pointer"
                   />
                   <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                    <span>$0</span>
-                    <span>$200+</span>
+                    <span>₹0</span>
+                    <span>₹20,000+</span>
                   </div>
                 </div>
 

@@ -1698,8 +1698,8 @@ export default function CineGenDirector() {
                 {(campaignDraft.budgetMin !== undefined || campaignDraft.budgetMax !== undefined) && (
                   <div>
                     <label className="text-xs text-gray-400 block mb-1">
-                      Budget (USD)
-                      {campaignDraft.originalCurrency && (
+                      Budget (₹)
+                      {campaignDraft.originalCurrency && campaignDraft.originalCurrency.includes('USD') && (
                         <span className="ml-1 text-violet-400 font-normal">
                           (converted from {campaignDraft.originalCurrency})
                         </span>

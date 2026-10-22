@@ -79,7 +79,7 @@ export function computeMatchScore(creator: CreatorProfile, brief: Brief): MatchR
   }
 
   // 8. Budget fit — rate in range check (bonus up to 5)
-  const crDailyRate = creator.hourlyRateUsd * 8;
+  const crDailyRate = creator.hourlyRate * 8;
   const estimatedProjectCost = crDailyRate * 5;
   if (estimatedProjectCost >= brief.budgetMin && estimatedProjectCost <= brief.budgetMax) {
     score += 5;

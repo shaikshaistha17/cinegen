@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useCreators } from "@/hooks/useCreators";
+import { formatCurrency } from "@/lib/utils";
 import { Trophy, Star, TrendingUp, Zap, CheckCircle, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
@@ -127,7 +128,7 @@ export default function LeaderboardPage() {
                 </span>
                 <div className="text-right">
                   <div className="font-bold text-sm">{val}{unit}</div>
-                  <div className="text-xs text-muted-foreground">${creator.hourlyRateUsd}/hr</div>
+                  <div className="text-xs text-muted-foreground">{formatCurrency(creator.hourlyRate)}/hr</div>
                 </div>
               </Link>
             </motion.div>

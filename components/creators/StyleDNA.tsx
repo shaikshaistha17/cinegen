@@ -37,7 +37,7 @@ function getStyleScore(creator: CreatorProfile, key: string): number {
         (tools.some((t) => ["midjourney", "flux"].includes(t)) ? 30 : 0) +
         (specs.some((s) => s.includes("social") || s.includes("short")) ? 20 : 0) +
         (bio.includes("bold") || bio.includes("dynamic") || bio.includes("energy") ? 25 : 0) +
-        (creator.hourlyRateUsd > 100 ? 25 : 15)
+        (creator.hourlyRate > 10000 ? 25 : 15)
       ));
     case "minimal":
       return Math.min(100, (

@@ -82,7 +82,7 @@ function analyzeBrief(form: FormData): Issue[] {
   // Part 3: Budget/timeline feasibility (labeled as estimate)
   if (form.deadline && form.budgetMax > 0) {
     const daysUntilDeadline = (new Date(form.deadline).getTime() - Date.now()) / 86400000;
-    if (daysUntilDeadline < 7 && form.budgetMax < 1000) {
+    if (daysUntilDeadline < 7 && form.budgetMax < 85000) {
       issues.push({ 
         type: "warning", 
         field: "Feasibility", 
@@ -93,8 +93,8 @@ function analyzeBrief(form: FormData): Issue[] {
   }
 
   // Suggestions
-  if (form.budgetMax > 0 && form.budgetMax < 500)
-    issues.push({ type: "suggestion", field: "Budget", message: "Budget seems low for AI production", fix: "Typical AI brand films start at $500–$1,000. Consider increasing." });
+  if (form.budgetMax > 0 && form.budgetMax < 42000)
+    issues.push({ type: "suggestion", field: "Budget", message: "Budget seems low for AI production", fix: "Typical AI brand films start at ₹40,000–₹85,000. Consider increasing." });
   if (!form.commercialUse?.modelIndemnityRequired)
     issues.push({ type: "suggestion", field: "Model Indemnity", message: "Model indemnity not required", fix: "For commercial campaigns, requiring model indemnity protects your brand" });
   if (form.negativeKeywords.length === 0)

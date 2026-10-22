@@ -59,7 +59,7 @@ export type AiTool =
   | "Adobe Firefly"
   | "Udio";
 
-export type PriceRange = '$500-$1k' | '$1k-$3k' | '$3k-$5k' | '$5k-$10k' | '$10k+';
+export type PriceRange = '₹50k-₹1L' | '₹1L-₹2.5L' | '₹2.5L-₹4L' | '₹4L-₹8L' | '₹8L+';
 
 // ─── Core Entities ────────────────────────────────────────────────────────────
 
@@ -126,7 +126,8 @@ export interface CreatorProfile {
   headline: string;
   bio: string;
   location: string;
-  hourlyRateUsd: number;
+  /** Hourly rate in Indian Rupees (INR). Stored as integer (no paise). */
+  hourlyRate: number;
   availability: AvailabilityStatus;
   specializations: ContentType[];
   skills: string[];
@@ -161,7 +162,9 @@ export interface Brief {
   quantity: number;
   toolsPreferred: AiTool[];
   referenceLinks: string[];
+  /** Budget minimum in Indian Rupees (INR). Stored as integer. */
   budgetMin: number;
+  /** Budget maximum in Indian Rupees (INR). Stored as integer. */
   budgetMax: number;
   deadline: string;
   commercialUse: BriefCommercialUse;
@@ -178,6 +181,7 @@ export interface Proposal {
   briefId: string;
   creatorId: string;
   message: string;
+  /** Proposal price in Indian Rupees (INR). Stored as integer. */
   price: number;
   timelineDays: number;
   status: ProposalStatus;
@@ -228,7 +232,9 @@ export interface FilterState {
   aspectRatios: AspectRatio[];
   licenseTiers: LicenseTier[];
   availabilityStatuses: AvailabilityStatus[];
+  /** Hourly rate filter minimum in Indian Rupees (INR) */
   hourlyRateMin: number;
+  /** Hourly rate filter maximum in Indian Rupees (INR) */
   hourlyRateMax: number;
   verifiedOnly: boolean;
   sortBy: "relevance" | "rating" | "rate_asc" | "rate_desc" | "projects";
@@ -283,7 +289,9 @@ export interface Agreement {
     resolution?: string;
     quantity: number;
   };
+  /** Agreement price in Indian Rupees (INR). Stored as integer. */
   price: number;
+  /** Currency code (should be "INR" for new agreements) */
   currency: string;
   milestones: {
     timelineDays: number;

@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { formatCurrency } from "@/lib/utils";
 import {
   ArrowLeft,
   ChevronRight,
@@ -88,9 +89,9 @@ export default function ServiceDetailPage({ params }: { params: { id: string } }
   }
 
   const priceColor =
-    service.priceRange === "$10k+"
+    service.priceRange === "₹8L+"
       ? "from-amber-500 to-amber-600"
-      : service.priceRange === "$5k-$10k"
+      : service.priceRange === "₹4L-₹8L"
       ? "from-violet-500 to-violet-600"
       : "from-cyan-500 to-cyan-600";
 
@@ -256,12 +257,12 @@ export default function ServiceDetailPage({ params }: { params: { id: string } }
               )}
 
               {/* Hourly Rate */}
-              {creator?.hourlyRateUsd && (
+              {creator?.hourlyRate && (
                 <div className="mb-4 pb-4 border-b border-white/5">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Hourly Rate</span>
                     <span className="font-bold text-lg">
-                      ${creator.hourlyRateUsd}
+                      {formatCurrency(creator.hourlyRate)}
                       <span className="text-sm text-muted-foreground font-normal">/hr</span>
                     </span>
                   </div>

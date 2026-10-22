@@ -23,11 +23,11 @@ const SKILLS_OPTIONS = [
 ];
 
 const PRICE_RANGES: PriceRange[] = [
-  "$500-$1k",
-  "$1k-$3k",
-  "$3k-$5k",
-  "$5k-$10k",
-  "$10k+",
+  "₹50k-₹1L",
+  "₹1L-₹2.5L",
+  "₹2.5L-₹4L",
+  "₹4L-₹8L",
+  "₹8L+",
 ];
 
 const DELIVERY_TIMES = ["1-2 days", "3-5 days", "1 week", "2 weeks", "Custom"];

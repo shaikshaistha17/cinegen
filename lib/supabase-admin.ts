@@ -50,7 +50,7 @@ export async function seedCreatorProfiles(creators: CreatorProfile[]) {
         headline: creator.headline,
         bio: creator.bio,
         location: creator.location,
-        hourly_rate_usd: creator.hourlyRateUsd,
+        hourly_rate_inr: creator.hourlyRate,
         availability: creator.availability,
         specializations: creator.specializations,
         skills: creator.skills,

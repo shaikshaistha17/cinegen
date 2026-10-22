@@ -122,9 +122,9 @@ function CreatorServicesSection() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {services.map((service, i) => {
             const priceColor =
-              service.priceRange === "$10k+"
+              service.priceRange === "₹8L+"
                 ? "from-amber-500 to-amber-600"
-                : service.priceRange === "$5k-$10k"
+                : service.priceRange === "₹4L-₹8L"
                 ? "from-violet-500 to-violet-600"
                 : "from-cyan-500 to-cyan-600";
 

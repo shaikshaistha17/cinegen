@@ -495,13 +495,13 @@ function NewBriefPageContent() {
                   <h3 className="font-semibold flex items-center gap-2"><span className="w-5 h-5 rounded-full bg-violet-500/20 text-violet-300 text-xs flex items-center justify-center font-bold">4</span> Budget & Timeline</h3>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs text-muted-foreground mb-1.5">Min Budget (USD) *</label>
+                      <label className="block text-xs text-muted-foreground mb-1.5">Min Budget (₹) *</label>
                       <input type="number" min={0} value={form.budgetMin || ""} onChange={(e) => setField("budgetMin", Number(e.target.value))}
                         placeholder="2000"
                         className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm focus:outline-none focus:border-violet-500/50 transition-all" />
                     </div>
                     <div>
-                      <label className="block text-xs text-muted-foreground mb-1.5">Max Budget (USD) *</label>
+                      <label className="block text-xs text-muted-foreground mb-1.5">Max Budget (₹) *</label>
                       <input type="number" min={0} value={form.budgetMax || ""} onChange={(e) => setField("budgetMax", Number(e.target.value))}
                         placeholder="8000"
                         className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm focus:outline-none focus:border-violet-500/50 transition-all" />
@@ -631,7 +631,7 @@ function NewBriefPageContent() {
               {(form.budgetMin > 0 || form.budgetMax > 0) && (
                 <div className="text-sm font-semibold">
                   ${form.budgetMin.toLocaleString()} – ${form.budgetMax.toLocaleString()}
-                  <span className="text-xs text-muted-foreground font-normal"> USD</span>
+                  <span className="text-xs text-muted-foreground font-normal"> INR</span>
                 </div>
               )}
               {form.contentType && (

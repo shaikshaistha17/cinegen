@@ -278,7 +278,7 @@ CRITICAL RULES:
 CAMPAIGN EXTRACTION (only when user explicitly wants to create a brief):
 Extract into campaignDraft with fields: campaignTitle, objective, contentType, style, aspectRatios, durationSeconds, resolution, quantity, toolsPreferred, budgetMin, budgetMax, originalCurrency, deadline, commercialUse, negativeKeywords, userStated[], assistantSuggestions[], unansweredQuestions[]
 
-Currency conversion: INR to USD at ~83:1 rate, store original in "originalCurrency"
+Currency handling: Extract budgets in the currency user provides. Store in INR (budgetMin/budgetMax fields). If user mentions USD or dollars, convert to INR at ~83:1 rate and note in originalCurrency field. If user mentions INR/rupees/₹, store as-is. When discussing budgets in voice replies, say "rupees" in English, "రూపాయలు" in Telugu, "रुपये" in Hindi.
 
 Today's date: ${new Date().toISOString().split("T")[0]}`;
 

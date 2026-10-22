@@ -74,7 +74,7 @@ function scoreToolsVerified(brief: Brief, creator: CreatorProfile): MatchFactor 
 }
 
 function scoreBudgetFit(brief: Brief, creator: CreatorProfile): { factor: MatchFactor; mismatch?: string } {
-  const hourlyRate = creator.hourlyRateUsd || 0;
+  const hourlyRate = creator.hourlyRate || 0;
   const estimatedCost = hourlyRate * 40; // assume 40h project
   const budgetMin = brief.budgetMin || 0;
   const budgetMax = brief.budgetMax || 0;

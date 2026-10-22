@@ -19,7 +19,7 @@ const ALL_SKILLS = [
   "Compositing",
 ];
 
-const PRICE_RANGES: PriceRange[] = ["$500-$1k", "$1k-$3k", "$3k-$5k", "$5k-$10k", "$10k+"];
+const PRICE_RANGES: PriceRange[] = ["₹50k-₹1L", "₹1L-₹2.5L", "₹2.5L-₹4L", "₹4L-₹8L", "₹8L+"];
 
 const DELIVERY_TIMES = ["1-2 days", "3-5 days", "1 week", "2 weeks", "Custom"];
 
@@ -57,8 +57,8 @@ function FilterChip({ label, onRemove }: { label: string; onRemove: () => void }
 }
 
 function ServiceCard({ service, index }: { service: CreatorService; index: number }) {
-  const priceColor = service.priceRange === "$10k+" ? "from-amber-500 to-amber-600" :
-                     service.priceRange === "$5k-$10k" ? "from-violet-500 to-violet-600" :
+  const priceColor = service.priceRange === "₹8L+" ? "from-amber-500 to-amber-600" :
+                     service.priceRange === "₹4L-₹8L" ? "from-violet-500 to-violet-600" :
                      "from-cyan-500 to-cyan-600";
 
   return (
@@ -194,11 +194,11 @@ export default function ServicesPage() {
       case "price_low":
         result.sort((a, b) => {
           const priceOrder: Record<PriceRange, number> = {
-            "$500-$1k": 1,
-            "$1k-$3k": 2,
-            "$3k-$5k": 3,
-            "$5k-$10k": 4,
-            "$10k+": 5,
+            "₹50k-₹1L": 1,
+            "₹1L-₹2.5L": 2,
+            "₹2.5L-₹4L": 3,
+            "₹4L-₹8L": 4,
+            "₹8L+": 5,
           };
           return priceOrder[a.priceRange] - priceOrder[b.priceRange];
         });
@@ -206,11 +206,11 @@ export default function ServicesPage() {
       case "price_high":
         result.sort((a, b) => {
           const priceOrder: Record<PriceRange, number> = {
-            "$500-$1k": 1,
-            "$1k-$3k": 2,
-            "$3k-$5k": 3,
-            "$5k-$10k": 4,
-            "$10k+": 5,
+            "₹50k-₹1L": 1,
+            "₹1L-₹2.5L": 2,
+            "₹2.5L-₹4L": 3,
+            "₹4L-₹8L": 4,
+            "₹8L+": 5,
           };
           return priceOrder[b.priceRange] - priceOrder[a.priceRange];
         });

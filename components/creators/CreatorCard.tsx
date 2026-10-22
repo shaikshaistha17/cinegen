@@ -3,6 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Star, CheckCircle, MapPin, Eye } from "lucide-react";
 import { CreatorProfile } from "@/types";
+import { formatCurrency } from "@/lib/utils";
 import { motion, useMotionValue, useTransform } from "framer-motion";
 
 const BADGE_STYLES: Record<string, string> = {
@@ -181,7 +182,7 @@ export function CreatorCard({ creator, index = 0 }: { creator: CreatorProfile; i
                 {creator.location.split(",")[0]}
               </span>
               <span className="font-bold text-foreground">
-                ${creator.hourlyRateUsd}<span className="text-muted-foreground font-normal text-xs">/hr</span>
+                {formatCurrency(creator.hourlyRate)}<span className="text-muted-foreground font-normal text-xs">/hr</span>
               </span>
             </div>
           </div>

@@ -73,7 +73,7 @@ export async function PUT(
         headline: body.headline,
         bio: body.bio,
         location: body.location,
-        hourly_rate_usd: body.hourlyRateUsd,
+        hourly_rate_inr: body.hourlyRate,
         availability: body.availability,
         specializations: body.specializations,
         skills: body.skills,

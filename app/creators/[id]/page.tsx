@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useCreator } from "@/hooks/useCreators";
 import { useSession } from "@/hooks/useSession";
+import { formatCurrency } from "@/lib/utils";
 import { PortfolioItem, WorkflowStep } from "@/types";
 import { toast } from "sonner";
 import { StyleDNA } from "@/components/creators/StyleDNA";
@@ -254,7 +255,7 @@ export default function CreatorProfilePage({ params }: { params: { id: string } 
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right">
-              <div className="text-2xl font-display font-bold">${creator.hourlyRateUsd}<span className="text-sm text-muted-foreground font-normal">/hr</span></div>
+              <div className="text-2xl font-display font-bold">{formatCurrency(creator.hourlyRate)}<span className="text-sm text-muted-foreground font-normal">/hr</span></div>
               <div className={`text-xs font-medium ${creator.availability === "Available" ? "text-green-400" : creator.availability === "Limited" ? "text-amber-400" : "text-red-400"}`}>
                 ● {creator.availability}
               </div>

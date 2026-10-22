@@ -73,7 +73,7 @@ export default function OnboardingPage() {
           headline: headline || `${session.name} — AI Content Creator`,
           bio: bio || "AI content creator specializing in generative media.",
           location: location || "Remote",
-          hourlyRateUsd: Number(rate) || 50,
+          hourlyRate: Number(rate) || 4000,
           availability,
           specializations,
           skills,
@@ -310,21 +310,21 @@ export default function OnboardingPage() {
 
               <div>
                 <label className="block text-sm font-medium mb-1.5 flex items-center gap-1">
-                  <DollarSign className="w-3.5 h-3.5 text-muted-foreground" /> Hourly Rate (USD)
+                  <DollarSign className="w-3.5 h-3.5 text-muted-foreground" /> Hourly Rate (₹)
                 </label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₹</span>
                   <input
                     type="number"
-                    min={5}
+                    min={1000}
                     value={rate}
                     onChange={(e) => setRate(e.target.value)}
-                    placeholder="50"
+                    placeholder="4000"
                     className="w-full pl-8 pr-16 py-3 bg-white/5 border border-white/10 rounded-xl text-sm focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/20 transition-all"
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">/hr</span>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">Average on CineGen: $85/hr. You can update this anytime.</p>
+                <p className="text-xs text-muted-foreground mt-1">Average on CineGen: ₹7,000/hr. You can update this anytime.</p>
               </div>
 
               {/* Summary */}

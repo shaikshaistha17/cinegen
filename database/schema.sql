@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS creator_profiles (
   headline TEXT NOT NULL,
   bio TEXT NOT NULL,
   location VARCHAR(255),
-  hourly_rate_usd INTEGER NOT NULL,
+  hourly_rate_inr INTEGER NOT NULL, -- Hourly rate in Indian Rupees (INR)
   availability VARCHAR(20) NOT NULL CHECK (availability IN ('Available', 'Booked', 'Limited')),
   specializations TEXT[] NOT NULL,
   skills TEXT[] NOT NULL,
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS creator_profiles (
 CREATE INDEX idx_creator_profiles_user_id ON creator_profiles(user_id);
 CREATE INDEX idx_creator_profiles_handle ON creator_profiles(handle);
 CREATE INDEX idx_creator_profiles_availability ON creator_profiles(availability);
-CREATE INDEX idx_creator_profiles_hourly_rate ON creator_profiles(hourly_rate_usd);
+CREATE INDEX idx_creator_profiles_hourly_rate ON creator_profiles(hourly_rate_inr);
 
 -- ============================================================================
 -- Brand Profiles Table
@@ -88,8 +88,8 @@ CREATE TABLE IF NOT EXISTS briefs (
   quantity INTEGER NOT NULL,
   tools_preferred TEXT[] NOT NULL,
   reference_links TEXT[] DEFAULT '{}',
-  budget_min INTEGER NOT NULL,
-  budget_max INTEGER NOT NULL,
+  budget_min INTEGER NOT NULL, -- Budget minimum in Indian Rupees (INR)
+  budget_max INTEGER NOT NULL, -- Budget maximum in Indian Rupees (INR)
   deadline DATE NOT NULL,
   commercial_use JSONB NOT NULL,
   negative_keywords TEXT[] DEFAULT '{}',
@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS proposals (
   brief_id UUID NOT NULL REFERENCES briefs(id) ON DELETE CASCADE,
   creator_id UUID NOT NULL REFERENCES creator_profiles(id) ON DELETE CASCADE,
   message TEXT NOT NULL,
-  price INTEGER NOT NULL,
+  price INTEGER NOT NULL, -- Proposal price in Indian Rupees (INR)
   timeline_days INTEGER NOT NULL,
   status VARCHAR(20) NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending', 'Shortlisted', 'Accepted', 'Rejected')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

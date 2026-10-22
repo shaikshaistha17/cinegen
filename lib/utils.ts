@@ -5,11 +5,18 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("en-US", {
+/**
+ * Format currency in Indian Rupees (INR).
+ * @param amount - Amount in rupees (stored as integer)
+ * @param showPaise - Whether to show decimal places (default: false)
+ * @returns Formatted string with ₹ symbol and Indian number formatting (e.g., ₹1,00,000)
+ */
+export function formatCurrency(amount: number, showPaise: boolean = false): string {
+  return new Intl.NumberFormat("en-IN", {
     style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
+    currency: "INR",
+    minimumFractionDigits: showPaise ? 2 : 0,
+    maximumFractionDigits: showPaise ? 2 : 0,
   }).format(amount);
 }
 

@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS creator_services (
   title TEXT NOT NULL,
   description TEXT NOT NULL,
   skills TEXT[] NOT NULL,
-  price_range TEXT NOT NULL CHECK (price_range IN ('$500-$1k', '$1k-$3k', '$3k-$5k', '$5k-$10k', '$10k+')),
+  price_range TEXT NOT NULL CHECK (price_range IN ('₹50k-₹1L', '₹1L-₹2.5L', '₹2.5L-₹4L', '₹4L-₹8L', '₹8L+')),
   delivery_time TEXT NOT NULL,
   portfolio_items JSONB NOT NULL DEFAULT '[]',
   is_active BOOLEAN NOT NULL DEFAULT true,

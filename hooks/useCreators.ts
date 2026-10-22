@@ -46,7 +46,7 @@ export function useCreators() {
             headline: profile.headline,
             bio: profile.bio,
             location: profile.location || "",
-            hourlyRateUsd: profile.hourly_rate_usd,
+            hourlyRate: profile.hourly_rate_inr,
             availability: profile.availability,
             specializations: profile.specializations || [],
             skills: profile.skills || [],
@@ -130,7 +130,7 @@ export function useCreatorProfile() {
         headline: data.headline,
         bio: data.bio,
         location: data.location,
-        hourly_rate_usd: data.hourlyRateUsd,
+        hourly_rate_inr: data.hourlyRate,
         availability: data.availability,
         specializations: data.specializations,
         skills: data.skills,
@@ -161,7 +161,7 @@ export function useCreatorProfile() {
     if (data.headline) updateData.headline = data.headline;
     if (data.bio) updateData.bio = data.bio;
     if (data.location !== undefined) updateData.location = data.location;
-    if (data.hourlyRateUsd) updateData.hourly_rate_usd = data.hourlyRateUsd;
+    if (data.hourlyRate) updateData.hourly_rate_inr = data.hourlyRate;
     if (data.availability) updateData.availability = data.availability;
     if (data.specializations) updateData.specializations = data.specializations;
     if (data.skills) updateData.skills = data.skills;

@@ -371,7 +371,7 @@ function CreatorView() {
                             className="w-full h-24 px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm focus:outline-none focus:border-violet-500/50 resize-none placeholder:text-muted-foreground transition-all" />
                           <div className="grid grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-xs text-muted-foreground mb-1">Your Price (USD)</label>
+                              <label className="block text-xs text-muted-foreground mb-1">Your Price (₹)</label>
                               <input type="number" value={proposalForm.price} onChange={(e) => setProposalForm((p) => ({ ...p, price: e.target.value }))}
                                 placeholder="e.g. 3500"
                                 className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm focus:outline-none focus:border-violet-500/50 transition-all" />
