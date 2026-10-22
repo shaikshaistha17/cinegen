@@ -407,3 +407,50 @@ export interface DirectorResponse {
   error?: boolean;
   retryAfterMs?: number; // Exposed retry timing for UI
 }
+
+// ─── Decision Room Types ───────────────────────────────────────────────
+
+export interface DecisionRoom {
+  id: string;
+  user_id: string;
+  idea_text: string | null;
+  requirements: Record<string, any>;
+  selected_direction: CreativeDirection | null;
+  selected_creator_id: string | null;
+  linked_brief_id: string | null;
+  stage_progress: {
+    idea: boolean;
+    directions: boolean;
+    evidence: boolean;
+    review: boolean;
+    passport: boolean;
+  };
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreativeDirection {
+  type: 'practical' | 'ambitious' | 'experimental';
+  title: string;
+  concept: string;
+  opening: string;
+  main_moment: string;
+  ending: string;
+  deliverables: string[];
+  required_assets: string[];
+  required_skills: string[];
+  assumptions: string[];
+  questions: string[];
+  budget_allocation?: {
+    pre: number;
+    production: number;
+    post: number;
+    disclaimer: string;
+  };
+}
+
+export interface RequirementStatus {
+  field: string;
+  value: any;
+  status: 'confirmed' | 'suggested' | 'missing';
+}
