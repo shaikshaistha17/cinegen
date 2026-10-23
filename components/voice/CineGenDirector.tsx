@@ -357,6 +357,47 @@ export default function CineGenDirector() {
     
     const trimmedText = userText.trim();
     
+    // Check for simple greetings that should be handled locally
+    const lowerText = trimmedText.toLowerCase();
+    const simpleGreetings = ['hi', 'hello', 'hey', 'hi hi', 'hello hello', 'hey there'];
+    
+    if (simpleGreetings.includes(lowerText)) {
+      // Handle greeting locally without AI call
+      const displayName = user?.name || '';
+      const greetingReply = displayName 
+        ? `Hey ${displayName}, how can I help you?`
+        : "Hey, how can I help you?";
+      
+      // Add both user and assistant messages
+      const userMessage: ConversationMessage = {
+        role: "user",
+        text: trimmedText,
+        timestamp: Date.now()
+      };
+      
+      const assistantMessage: ConversationMessage = {
+        role: "assistant",
+        text: greetingReply,
+        timestamp: Date.now()
+      };
+      
+      setMessages(prev => [...prev, userMessage, assistantMessage]);
+      
+      // Speak response if not muted
+      if (!isMuted || isVoiceInput) {
+        speak(greetingReply);
+      }
+      
+      // Return to appropriate state
+      if (isVoiceInput && recognitionRef.current) {
+        setState("listening");
+      } else {
+        setState("off");
+      }
+      
+      return; // Exit early - no AI call needed
+    }
+    
     // Start processing
     isProcessingRef.current = true;
     setState("processing");
@@ -779,8 +820,14 @@ export default function CineGenDirector() {
     recognition.onerror = (event: any) => {
       console.log(`[Recognition] Error: ${event.error}`);
       
+      if (event.error === "aborted") {
+        // Intentional abort - don't show error
+        console.log('[Recognition] Intentionally aborted - no error shown');
+        return;
+      }
+      
       if (event.error === "not-allowed") {
-        setErrorMessage(t.errorMicDenied);
+        setErrorMessage("Microphone permission denied. Please enable microphone access in your browser settings.");
         setState((prevState) => {
           console.log(`[State] ${prevState} → error (timestamp: ${new Date().toISOString()})`);
           return "error";
@@ -788,7 +835,7 @@ export default function CineGenDirector() {
         errorRetryCountRef.current = 999; // Don't retry permission errors
       } else if (event.error === "language-not-supported") {
         const langName = getLanguageName(inputLanguage);
-        setErrorMessage(`${langName} ${t.errorLanguageNotSupported}`);
+        setErrorMessage(`${langName} is not supported for speech recognition. Please try English.`);
         setState((prevState) => {
           console.log(`[State] ${prevState} → error (timestamp: ${new Date().toISOString()})`);
           return "error";
@@ -809,7 +856,13 @@ export default function CineGenDirector() {
           }, 100);
         }
       } else if (event.error === "network") {
-        setErrorMessage(t.errorNetwork);
+        setErrorMessage("Network error during speech recognition. Check your internet connection and try again.");
+        setState((prevState) => {
+          console.log(`[State] ${prevState} → error (timestamp: ${new Date().toISOString()})`);
+          return "error";
+        });
+      } else if (event.error === "audio-capture") {
+        setErrorMessage("Microphone is unavailable or being used by another application. Please check your audio settings.");
         setState((prevState) => {
           console.log(`[State] ${prevState} → error (timestamp: ${new Date().toISOString()})`);
           return "error";
@@ -824,7 +877,7 @@ export default function CineGenDirector() {
             }
           }, 500);
         } else {
-          setErrorMessage(t.errorGeneric);
+          setErrorMessage("Speech recognition error. Please try again.");
           setState((prevState) => {
             console.log(`[State] ${prevState} → error (timestamp: ${new Date().toISOString()})`);
             return "error";
