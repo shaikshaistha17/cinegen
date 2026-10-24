@@ -456,7 +456,14 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 GEMINI_API_KEY=your_gemini_key (optional)
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
+
+# Stripe Payment Configuration (required for payment features)
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_xxxxx
+STRIPE_SECRET_KEY=sk_test_xxxxx
+STRIPE_WEBHOOK_SECRET=whsec_xxxxx
 ```
+
+> **Note:** Get your Stripe test keys from [Stripe Dashboard](https://dashboard.stripe.com/test/apikeys). For webhook testing, use [Stripe CLI](https://stripe.com/docs/stripe-cli) to forward events to `localhost:3000/api/stripe/webhook`.
 
 **4. Seed Database**
 ```bash
@@ -467,6 +474,8 @@ This creates:
 - 18 creator profiles
 - 1 brand account (`brand@cinegen.demo` / `Demo@123`)
 - Sample briefs and proposals
+
+> **Important:** For payment features, apply migration `database/migrations/011_payment_system.sql` via [Supabase Dashboard SQL Editor](https://supabase.com/dashboard) to create the `payment_intents` table.
 
 **5. Run Development Server**
 ```bash

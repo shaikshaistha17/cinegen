@@ -281,6 +281,26 @@ export interface InspectionResult {
   message?: string;
 }
 
+// ─── Payment Types ─────────────────────────────────────────────────────
+
+export type PaymentStatus = 'pending' | 'processing' | 'succeeded' | 'failed' | 'canceled' | 'refunded';
+
+export interface PaymentIntent {
+  id: string;
+  agreementId: string;
+  brandId: string;
+  creatorId: string;
+  stripePaymentIntentId?: string;
+  /** Amount in smallest currency unit (e.g., INR paise: 100000 = ₹1000) */
+  amount: number;
+  currency: string;
+  milestoneNumber?: number;
+  status: PaymentStatus;
+  metadata: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ─── Agreement & Delivery Types ───────────────────────────────────────────
 
 export interface Agreement {
