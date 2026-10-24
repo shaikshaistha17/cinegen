@@ -2,6 +2,14 @@
 
 export type UserRole = "brand" | "creator" | "guest" | "admin";
 
+export type NotificationType = 
+  | "proposal_submitted" 
+  | "proposal_accepted" 
+  | "payment_received" 
+  | "delivery_uploaded" 
+  | "review_submitted" 
+  | "message_received";
+
 export type VerificationBadge = "Studio" | "Verified" | "Rising" | "Unverified";
 
 export type AvailabilityStatus = "Available" | "Booked" | "Limited";
@@ -378,6 +386,17 @@ export interface Review {
   brandId: string;
   rating: number;
   comment?: string;
+  createdAt: string;
+}
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  link?: string;
+  readAt?: string;
   createdAt: string;
 }
 

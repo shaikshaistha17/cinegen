@@ -1,0 +1,52 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Stripe payment integration with PCI-compliant tokenization, escrow workflow, and milestone releases. Creates payment_intents table, implements Stripe Elements for secure card input, adds webhook handler for payment status updates, builds payment UI matching existing design system, and integrates with agreements workflow. Replaces reference's client-side card form with proper Stripe.js integration.",
+  "status": "pending",
+  "steps": [
+    "1. Install Stripe dependencies: npm install stripe @stripe/stripe-js @stripe/react-stripe-js. Add STRIPE_PUBLISHABLE_KEY and STRIPE_SECRET_KEY to .env.local (document in README that these are required).",
+    "2. Create database/migrations/011_payment_system.sql with payment_intents table: (id UUID PRIMARY KEY, agreement_id UUID REFERENCES agreements(id) ON DELETE CASCADE, brand_id UUID REFERENCES brand_profiles(id), creator_id UUID REFERENCES creator_profiles(id), stripe_payment_intent_id VARCHAR(255) UNIQUE, amount INTEGER NOT NULL, currency VARCHAR(3) DEFAULT 'INR', milestone_number INTEGER, status VARCHAR(50) CHECK(status IN ('pending', 'processing', 'succeeded', 'failed', 'canceled', 'refunded')), metadata JSONB, created_at TIMESTAMP, updated_at TIMESTAMP). Add indexes on agreement_id, stripe_payment_intent_id, status. Add RLS policies: participants (brand/creator) can read their payment_intents. Add trigger for update_updated_at_column.",
+    "3. Create lib/stripe.ts helper with Stripe instance: export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' }). Add getStripePromise() client helper for @stripe/stripe-js.",
+    "4. Create app/api/stripe/create-payment-intent/route.ts: POST endpoint that takes { agreementId, milestoneNumber, amount, currency } from request body. Verify user is brand associated with agreement. Create Stripe PaymentIntent with amount (convert INR paise to smallest currency unit), currency, metadata (agreementId, milestoneNumber). Insert record into payment_intents table with stripe_payment_intent_id and status='pending'. Return { clientSecret, paymentIntentId }. Handle demo mode: if STRIPE_SECRET_KEY contains 'PLACEHOLDER' or is missing, return { demo: true } and create mock payment_intent with status='succeeded'.",
+    "5. Create app/api/stripe/webhook/route.ts: POST endpoint that receives Stripe webhook events. Verify signature using stripe.webhooks.constructEvent(body, signature, webhookSecret). Handle events: payment_intent.succeeded (update payment_intents status to 'succeeded'), payment_intent.payment_failed (update status to 'failed'), charge.refunded (update status to 'refunded'). Idempotent: check if event already processed. Return 200 status to acknowledge receipt.",
+    "6. Create app/payment/page.tsx: payment form with Stripe Elements. Use useSearchParams to get agreementId, milestoneNumber, amount from query params. Fetch agreement details to display order summary (creator name, project title, milestone info). Render Elements provider with CardElement. On submit: call /api/stripe/create-payment-intent, then stripe.confirmCardPayment(clientSecret) with card element. Handle 3D Secure flow. On success: show success animation (confetti, checkmark), create notification for creator. On error: show error toast. Match existing UI style (glassmorphism, gradients, framer-motion animations).",
+    "7. Create components/payment/PaymentForm.tsx: reusable form component with CardElement, cardholder name input, submit button, security badges (Stripe logo, PCI DSS, SSL). Props: agreementId, amount, onSuccess, onError. Use @stripe/react-stripe-js hooks (useStripe, useElements).",
+    "8. Create components/payment/OrderSummary.tsx: displays creator avatar, project title, milestone details, price breakdown (milestone amount, platform fee 10%, total). Props: agreement, milestoneNumber. Fetch creator profile and brief details.",
+    "9. Integrate payment button into app/projects/[agreementId]/page.tsx: 'Pay Milestone X' button that links to /payment?agreementId=X&milestoneNumber=1&amount=Y. Only show button if milestone not yet paid (check payment_intents table for succeeded payment). Show 'Paid' badge if milestone already completed.",
+    "10. Create app/api/payments/route.ts: GET endpoint that lists payments for an agreement (verify user is participant). Returns payment_intents with status, amount, created_at. Used to display payment history in project passport.",
+    "11. Create app/api/payments/[id]/release/route.ts: POST endpoint that releases escrowed funds to creator. Verify user is brand. Check if delivery approved. Use Stripe Transfer API to send funds to creator's connected account (or create Payout if using Stripe Express). Update payment_intent metadata with { released: true, released_at: timestamp }. Create notification for creator.",
+    "12. Add payment history section to app/projects/[agreementId]/components/HistoryTab.tsx: display all payment_intents for agreement with status badges (Pending, Succeeded, Failed, Refunded), amounts, timestamps. Link to Stripe dashboard for details."
+  ],
+  "acceptance_criteria": [
+    "Running 'npm run build' succeeds with 0 TypeScript errors",
+    "Migration 011_payment_system.sql creates payment_intents table with correct schema and RLS policies",
+    "POST /api/stripe/create-payment-intent creates PaymentIntent and returns clientSecret",
+    "Payment form renders Stripe CardElement in iframe (inspect element shows iframe from js.stripe.com)",
+    "Submitting valid card (test card 4242 4242 4242 4242) completes payment and redirects to success page with confetti animation",
+    "Webhook handler receives payment_intent.succeeded event and updates payment_intents status to 'succeeded'",
+    "Payment form handles 3D Secure flow (test card 4000 0027 6000 3184 requires authentication)",
+    "Demo mode works when STRIPE_SECRET_KEY is missing (shows demo banner, records mock payment)",
+    "Payment button in project page only shows for unpaid milestones",
+    "Payment history tab displays all payments with correct status badges",
+    "Creator receives notification when payment succeeds",
+    "RLS enforces access: brand can create payment, both parties can read, neither can modify Stripe data directly"
+  ],
+  "verification": [
+    "npm run build (exit code 0, no TypeScript errors)",
+    "Apply migration 011_payment_system.sql in Supabase dashboard, verify table created",
+    "Add Stripe test keys to .env.local (publishable: pk_test_..., secret: sk_test_...)",
+    "Login as brand@cinegen.demo, navigate to project with accepted proposal, click 'Pay Milestone 1'",
+    "Verify payment form renders with Stripe CardElement (iframe visible in DevTools)",
+    "Enter test card 4242 4242 4242 4242, exp 12/34, CVV 123, name 'Test Brand', submit form",
+    "Verify payment succeeds, confetti animation plays, redirect to project page",
+    "Check Supabase payment_intents table: verify record exists with status='succeeded'",
+    "Use Stripe CLI to forward webhooks: stripe listen --forward-to localhost:3000/api/stripe/webhook",
+    "Trigger test payment, verify webhook received and payment_intents updated",
+    "Test 3D Secure: use card 4000 0027 6000 3184, verify authentication modal appears",
+    "Test demo mode: remove STRIPE_SECRET_KEY, verify demo banner appears and mock payment recorded",
+    "Verify payment history tab shows payment with correct status and amount",
+    "Login as creator, verify notification received when payment succeeds"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

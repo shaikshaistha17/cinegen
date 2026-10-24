@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth-context";
 import { signOut } from "@/lib/auth";
 import { toast } from "sonner";
 import { useTheme } from "@/hooks/useTheme";
+import { NotificationBell } from "./NotificationBell";
 
 export function Navbar() {
   const { session, logout } = useSession();
@@ -161,6 +162,9 @@ export function Navbar() {
                     {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                   </button>
                 )}
+
+                {/* Notification Bell */}
+                <NotificationBell />
 
                 {/* User info with online status */}
                 <div className="flex items-center gap-2.5">

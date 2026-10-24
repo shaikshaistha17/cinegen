@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase';
+import { createNotification, getNotificationTitle, getNotificationMessage } from '@/lib/notifications';
 
 export async function GET(request: NextRequest) {
   try {
@@ -135,6 +136,39 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error;
 
+    // Get brief details and brand user_id for notification
+    const { data: briefData } = await supabase
+      .from('briefs')
+      .select('campaign_title, brand_id, brand:brand_profiles!inner(user_id, company_name)')
+      .eq('id', body.briefId)
+      .single();
+
+    if (briefData) {
+      const brandUserId = (briefData.brand as any).user_id;
+      const brandName = (briefData.brand as any).company_name;
+      
+      // Get creator name
+      const { data: creatorData } = await supabase
+        .from('creator_profiles')
+        .select('user:users!inner(name)')
+        .eq('id', creatorProfile.id)
+        .single();
+
+      const creatorName = creatorData ? (creatorData.user as any).name : 'A creator';
+
+      // Send notification to brand
+      await createNotification(
+        brandUserId,
+        'proposal_submitted',
+        getNotificationTitle('proposal_submitted'),
+        getNotificationMessage('proposal_submitted', {
+          creatorName,
+          briefTitle: briefData.campaign_title,
+        }),
+        `/briefs/${body.briefId}`
+      );
+    }
+
     return NextResponse.json({ proposal: data }, { status: 201 });
   } catch (error: any) {
     console.error('Error creating proposal:', error);
@@ -250,6 +284,25 @@ export async function PATCH(request: NextRequest) {
         .from('briefs')
         .update({ status: 'Hired' })
         .eq('id', proposal.brief_id);
+
+      // Send notification to creator
+      const { data: briefData } = await supabase
+        .from('briefs')
+        .select('campaign_title')
+        .eq('id', proposal.brief_id)
+        .single();
+
+      if (briefData) {
+        await createNotification(
+          creatorUserId,
+          'proposal_accepted',
+          getNotificationTitle('proposal_accepted'),
+          getNotificationMessage('proposal_accepted', {
+            briefTitle: briefData.campaign_title,
+          }),
+          `/briefs/${proposal.brief_id}`
+        );
+      }
 
       return NextResponse.json({
         success: true,

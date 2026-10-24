@@ -1,0 +1,49 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Email notification system using Resend or SendGrid to send transactional emails on key events. Creates email service wrapper, adds email templates (already exist in lib/email-templates.ts), triggers emails from API routes (signup, OTP, proposal, payment, delivery), and adds email preferences UI. Independent of FEAT-001 (in-app notifications) but complements it.",
+  "status": "pending",
+  "steps": [
+    "1. Choose email provider: Resend (recommended, simpler API) or SendGrid. Install dependency: npm install resend OR npm install @sendgrid/mail. Add RESEND_API_KEY or SENDGRID_API_KEY to .env.local. Document in README.",
+    "2. Create lib/email.ts email service wrapper: export async function sendEmail({ to, subject, html }). Use Resend or SendGrid client. Handle errors gracefully (log error, don't throw - email failures shouldn't break API calls). Add retry logic for transient failures (3 retries with exponential backoff).",
+    "3. Review existing templates in lib/email-templates.ts: generateWelcomeEmail(name, loginUrl), generateOTPEmail(code, email), generateProposalNotification(brandName, creatorName, briefTitle, proposalUrl), generateBriefMatchEmail(creatorName, briefTitle, matchScore, briefUrl). Verify HTML is well-formed and mobile-responsive.",
+    "4. Add email trigger to app/api/auth/signup/route.ts (if not exists, create it): after successful signup, call sendEmail with generateWelcomeEmail template. Include link to /dashboard.",
+    "5. Add email trigger to app/api/auth/otp/route.ts (if not exists, create it): when OTP requested, call sendEmail with generateOTPEmail template. OTP should be stored in database (see FEAT-004 for persistent OTP storage).",
+    "6. Add email trigger to app/api/proposals/route.ts POST endpoint: after proposal inserted, fetch brand email from brand_profiles join users, call sendEmail with generateProposalNotification template. Include link to /briefs/[id].",
+    "7. Add email trigger to app/api/proposals/route.ts PATCH endpoint (proposal accepted): fetch creator email, call sendEmail with subject 'Your proposal was accepted!', body with brief title and link to /projects/[agreementId].",
+    "8. Add email trigger to app/api/stripe/webhook/route.ts payment_intent.succeeded handler: fetch creator email, call sendEmail with subject 'Payment received', body with amount and project link.",
+    "9. Add email trigger to app/api/deliveries/route.ts POST endpoint: after delivery uploaded, fetch brand email, call sendEmail with subject 'New delivery uploaded', body with project title and link to review delivery.",
+    "10. Create database/migrations/012_email_preferences.sql: add email_preferences JSONB column to users table with default { proposal_submitted: true, proposal_accepted: true, payment_received: true, delivery_uploaded: true, review_submitted: true, message_received: true }. Users can opt-out of individual email types.",
+    "11. Create app/api/settings/email-preferences/route.ts: GET endpoint returns user's email_preferences JSONB. PATCH endpoint updates preferences (merge with existing, don't replace entirely). Verify auth session.",
+    "12. Create app/settings/email/page.tsx: UI with checkboxes for each email type (In-App + Email columns). Fetch preferences on mount, update via PATCH /api/settings/email-preferences. Show success toast on save. Match existing settings page style.",
+    "13. Update email sending logic in lib/email.ts: before sending, check user's email_preferences. If user has opted out of that email type, skip sending (log skipped email for debugging)."
+  ],
+  "acceptance_criteria": [
+    "Running 'npm run build' succeeds with 0 TypeScript errors",
+    "Migration 012_email_preferences.sql adds email_preferences column to users table",
+    "Signing up triggers welcome email sent to user's email address",
+    "Requesting OTP triggers OTP email with 6-digit code",
+    "Submitting proposal triggers email to brand with proposal details and link",
+    "Accepting proposal triggers email to creator with acceptance confirmation",
+    "Payment succeeding triggers email to creator with payment confirmation",
+    "Uploading delivery triggers email to brand with review link",
+    "Email preferences page displays all toggles and saves changes successfully",
+    "Opting out of proposal emails prevents proposal notification emails (but in-app notifications still work from FEAT-001)",
+    "Email HTML renders correctly in Gmail, Outlook, Apple Mail (test with Litmus or Email on Acid, or manual testing)"
+  ],
+  "verification": [
+    "npm run build (exit code 0, no TypeScript errors)",
+    "Add RESEND_API_KEY or SENDGRID_API_KEY to .env.local with valid test API key",
+    "Apply migration 012_email_preferences.sql in Supabase dashboard",
+    "Create new test user via /register, verify welcome email received (check inbox or Resend/SendGrid logs)",
+    "Login as creator, submit proposal to brief, verify brand receives email (check brand user's email)",
+    "Login as brand, accept proposal, verify creator receives email",
+    "Complete payment flow (FEAT-002), verify creator receives payment email",
+    "Upload delivery (existing feature), verify brand receives delivery email",
+    "Navigate to /settings/email, toggle off 'Proposal submitted' email, submit another proposal, verify no email sent (check Resend/SendGrid logs show email was skipped)",
+    "Verify in-app notification still created (FEAT-001 independent of email preferences)",
+    "Send test email to personal Gmail/Outlook account, verify HTML renders correctly on mobile and desktop"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

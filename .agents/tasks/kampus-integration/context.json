@@ -1,0 +1,31 @@
+{
+  "project_type": "Next.js 14 App Router + Supabase PostgreSQL + TypeScript",
+  "language": "TypeScript",
+  "build_system": "Next.js 14.2.35 with npm workspaces. Build outputs to .next/ directory. Uses TypeScript 5 with strict mode.",
+  "test_framework": "No test framework configured. Manual testing via localhost:3000 and Supabase dashboard.",
+  "build_command": "npm run build",
+  "test_command": "npm run lint (only ESLint, no unit tests)",
+  "verification_instructions": "1. Run 'npm run build' - must exit with code 0 and 0 TypeScript errors. 2. Run 'npm run lint' - may have exhaustive-deps warnings (acceptable). 3. Start dev server with 'npm run dev' and test features at http://localhost:3000. 4. Verify database changes in Supabase dashboard at supabase.com/dashboard. 5. Test RLS policies by logging in as different users (demo accounts: brand@cinegen.demo / creator@cinegen.demo, password Demo@123). 6. Check API routes return expected JSON (200/201 for success, 401 for unauthorized, 400 for bad request).",
+  "snapshot_or_generated_files": "Migration SQL files in database/migrations/ are manually applied via Supabase dashboard. No automatic migration runner. Schema changes require new migration files with incremental numbering (010_feature_name.sql). Build generates .next/ directory (gitignored).",
+  "environment_constraints": "Supabase project must be running. Environment variables in .env.local: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, NEXT_PUBLIC_GEMINI_API_KEY. Never expose service role key in client code. Payment integration requires STRIPE_PUBLISHABLE_KEY and STRIPE_SECRET_KEY (or Razorpay equivalents). Email integration requires RESEND_API_KEY or SENDGRID_API_KEY.",
+  "contribution_requirements": "1. All database changes must include migration SQL files in database/migrations/ with sequential numbering. 2. All new tables must have RLS policies defined. 3. All API routes must verify auth session with supabase.auth.getUser(). 4. All price fields use integers in INR (no paise). 5. Follow existing patterns: RLS for access control, foreign keys with ON DELETE CASCADE, timestamps with TIME ZONE. 6. UI must use Tailwind classes and Radix UI components. 7. Animations use Framer Motion. 8. Toast notifications use sonner library. 9. Preserve demo isolation (is_demo=true accounts are sandboxed).",
+  "key_patterns": "Auth: supabase.auth.getUser() → resolve profile (creator_profiles or brand_profiles) by user_id → get brand_id or creator_id. API routes: Always check user session, return 401 if no user, 403 if RLS denies, 400 for validation errors, 500 for exceptions. Database: RLS policies enforce all access control. Use JSONB for complex objects (deliverables, milestones, stats). Use CHECK constraints for enums. Foreign keys always ON DELETE CASCADE. Timestamps always WITH TIME ZONE. UI: Glassmorphism with backdrop-blur. Purple-indigo-teal-pink gradients. Framer Motion for animations. Radix UI for components. Toast notifications with sonner. Forms use controlled components. Real-time: Supabase Realtime for live updates (messages, notifications).",
+  "relevant_files": [
+    "database/schema.sql",
+    "database/migrations/002_delivery_workflow.sql",
+    "database/migrations/006_admin_and_demo_security_safe.sql",
+    "database/migrations/007_director_conversations.sql",
+    "database/migrations/009_decision_rooms.sql",
+    "lib/supabase.ts",
+    "lib/supabase-server.ts",
+    "lib/auth.ts",
+    "lib/auth-context.tsx",
+    "app/api/messages/route.ts",
+    "app/api/briefs/route.ts",
+    "app/api/proposals/route.ts",
+    "types/index.ts",
+    "components/ui/*",
+    "middleware.ts"
+  ],
+  "directory_structure": "app/ (Next.js App Router pages and API routes), components/ (React components), database/ (SQL schema and migrations), lib/ (business logic, Supabase clients, auth), types/ (TypeScript type definitions), public/ (static assets), .env.local (environment variables, gitignored), middleware.ts (route protection), package.json (dependencies). API routes: app/api/[feature]/route.ts. Pages: app/[route]/page.tsx. Components: components/[feature]/[Component].tsx. UI primitives: components/ui/[component].tsx."
+}

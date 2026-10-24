@@ -1,0 +1,50 @@
+{
+  "id": "FEAT-004",
+  "type": "fix",
+  "description": "Security and data integrity fixes: persistent OTP storage (replaces in-memory Map), migration consolidation (removes duplicate/conflicting migrations), RLS policy audit (verifies all tables protected), and rate limiting for sensitive endpoints. Addresses security gaps identified in baseline investigation.",
+  "status": "pending",
+  "steps": [
+    "1. Create database/migrations/013_otp_storage.sql: create otp_verifications table (id UUID PRIMARY KEY, email VARCHAR(255) NOT NULL, code VARCHAR(6) NOT NULL, expires_at TIMESTAMP NOT NULL, used_at TIMESTAMP, created_at TIMESTAMP DEFAULT NOW()). Add index on (email, expires_at) for cleanup queries. Add RLS policy: no direct user access (service role only). Add cleanup function: DELETE FROM otp_verifications WHERE expires_at < NOW() - INTERVAL '1 hour'. Schedule with pg_cron or manual cleanup.",
+    "2. Update lib/auth-helpers.ts: replace in-memory otpStore Map with database calls. storeOTP() inserts into otp_verifications. verifyOTP() queries otp_verifications WHERE email=? AND code=? AND expires_at > NOW() AND used_at IS NULL, then updates used_at to prevent reuse. Remove Map declaration.",
+    "3. Create database/migrations/014_consolidated_schema.sql: document that this is the consolidated schema after migrations 001-013. Include all CREATE TABLE, ALTER TABLE, CREATE INDEX, CREATE POLICY statements from previous migrations in correct order. Add header comment listing which migrations are superseded. This is the new baseline for fresh installations.",
+    "4. Audit all tables for RLS: verify users, creator_profiles, brand_profiles, briefs, proposals, messages, reviews, verifications, agreements, deliveries, project_messages, scope_changes, director_conversations, director_messages, decision_rooms, notifications (FEAT-001), payment_intents (FEAT-002), otp_verifications all have 'ALTER TABLE ... ENABLE ROW LEVEL SECURITY;' in migrations. Document any missing RLS in findings.",
+    "5. Audit RLS policies: verify each table has appropriate policies (SELECT, INSERT, UPDATE, DELETE). Check ownership patterns (user_id = auth.uid()), participation patterns (creator_id or brand_id), admin policies (role='admin'), demo isolation (is_demo=true). Document any gaps in findings.",
+    "6. Create lib/rate-limit.ts: simple in-memory rate limiter using Map<key, {count, resetAt}>. export function rateLimit(key: string, maxRequests: number, windowMs: number): boolean. Returns false if limit exceeded. Clean up old entries periodically.",
+    "7. Add rate limiting to app/api/auth/otp/route.ts: max 3 OTP requests per email per 15 minutes. Return 429 Too Many Requests if exceeded. Show clear error message 'Too many OTP requests, please try again in X minutes'.",
+    "8. Add rate limiting to app/api/stripe/create-payment-intent/route.ts: max 5 payment attempts per user per hour. Prevents abuse/testing card numbers. Return 429 with message 'Too many payment attempts, please contact support'.",
+    "9. Add rate limiting to app/api/proposals/route.ts POST: max 10 proposals per creator per hour. Prevents spam. Return 429 with message 'Too many proposals submitted, please slow down'.",
+    "10. Create database/migrations/015_indexes_optimization.sql: add composite indexes for common queries: (brief_id, status) on proposals, (agreement_id, version) on deliveries (already exists, verify), (conversation_id, created_at) on director_messages (already exists, verify), (user_id, read_at) on notifications (from FEAT-001). Run EXPLAIN ANALYZE on slow queries to verify index usage.",
+    "11. Create app/api/health/route.ts: GET endpoint that checks database connectivity (SELECT 1), returns { status: 'ok', database: 'connected', timestamp: ISO8601 }. Used for monitoring/uptime checks. No auth required (public).",
+    "12. Document security features in docs/SECURITY.md: RLS policies, rate limiting, OTP expiry, payment security (PCI compliance), demo isolation, admin permissions. Include threat model and mitigation strategies."
+  ],
+  "acceptance_criteria": [
+    "Running 'npm run build' succeeds with 0 TypeScript errors",
+    "Migration 013_otp_storage.sql creates otp_verifications table with correct schema",
+    "OTP verification uses database (no in-memory Map), OTPs persist across server restarts",
+    "Migration 014_consolidated_schema.sql can create full schema from scratch (test on fresh Supabase project)",
+    "All tables have RLS enabled (verified via Supabase dashboard or SELECT tablename FROM pg_tables WHERE rowsecurity = true)",
+    "All tables have appropriate RLS policies (documented in SECURITY.md)",
+    "Rate limiting works: requesting 4 OTPs in 15 minutes returns 429 on 4th request",
+    "Rate limiting works: submitting 11 proposals in 1 hour returns 429 on 11th request",
+    "Indexes speed up queries: EXPLAIN ANALYZE shows index scans instead of sequential scans",
+    "GET /api/health returns 200 with { status: 'ok' }",
+    "SECURITY.md documents all security features with examples"
+  ],
+  "verification": [
+    "npm run build (exit code 0, no TypeScript errors)",
+    "Apply migrations 013-015 in Supabase dashboard",
+    "Test OTP persistence: request OTP, restart Next.js server (npm run dev), verify OTP still valid",
+    "Test OTP expiry: request OTP, wait 16 minutes, verify OTP rejected",
+    "Test OTP reuse: use OTP once, try using same OTP again, verify rejected",
+    "Test rate limiting: use curl or Postman to send 4 OTP requests in 15 minutes, verify 4th returns 429",
+    "Test rate limiting reset: wait 15 minutes, send another OTP request, verify succeeds",
+    "Test proposal rate limiting: submit 11 proposals in 1 hour (script or manual), verify 11th returns 429",
+    "Verify RLS on all tables: run query 'SELECT schemaname, tablename, rowsecurity FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename' in Supabase SQL editor, confirm all have rowsecurity = true",
+    "Test RLS enforcement: attempt to read another user's data via SQL editor with SET ROLE, verify denied",
+    "Run EXPLAIN ANALYZE on common queries (list briefs, list proposals, fetch messages), verify index usage",
+    "Curl GET /api/health, verify returns 200 with JSON { status: 'ok', database: 'connected' }",
+    "Review SECURITY.md, verify all features documented with examples"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

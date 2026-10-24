@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase";
+import { createNotification, getNotificationTitle, getNotificationMessage } from '@/lib/notifications';
 
 export async function GET(request: NextRequest) {
   try {
@@ -78,6 +79,24 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) throw error;
+
+    // Get sender name for notification
+    const { data: senderProfile } = await supabase
+      .from('users')
+      .select('name')
+      .eq('id', user.id)
+      .single();
+
+    const senderName = senderProfile?.name || 'Someone';
+
+    // Send notification to recipient
+    await createNotification(
+      recipientId,
+      'message_received',
+      getNotificationTitle('message_received'),
+      getNotificationMessage('message_received', { senderName }),
+      `/messages?conversation=${convId}`
+    );
 
     // Trigger Realtime broadcast
     const channel = supabase.channel(`conversation_${convId}`);
