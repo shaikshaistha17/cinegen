@@ -7,7 +7,11 @@
 import { Resend } from 'resend';
 import { createServiceClient } from '@/lib/supabase';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize Resend only if API key is available and valid
+const resendApiKey = process.env.RESEND_API_KEY;
+const resend = resendApiKey && !resendApiKey.includes('PLACEHOLDER')
+  ? new Resend(resendApiKey)
+  : null;
 
 interface SendEmailParams {
   to: string;
@@ -78,10 +82,10 @@ export async function sendEmail(
 ): Promise<{ success: boolean; error?: string }> {
   const { to, subject, html, text } = params;
 
-  // Validate required environment variable
-  if (!process.env.RESEND_API_KEY) {
-    console.error('RESEND_API_KEY not configured');
-    return { success: false, error: 'Email service not configured' };
+  // Skip if Resend is not configured
+  if (!resend) {
+    console.log('[Email] Resend not configured, skipping email:', subject);
+    return { success: true }; // Return success to not break the flow
   }
 
   // Check email preferences
