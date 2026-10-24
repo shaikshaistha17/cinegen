@@ -1,10 +1,16 @@
 services:
   - type: web
     name: cinegen
-    runtime: node
-    buildCommand: npm install && npm run build
-    startCommand: npm start
+    runtime: docker
+    dockerfilePath: ./Dockerfile
     envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      - key: PORT
+        value: "3000"
+      # Add your actual values in Render Dashboard
       - key: NEXT_PUBLIC_SUPABASE_URL
         sync: false
       - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -15,5 +21,15 @@ services:
         sync: false
       - key: NEXT_PUBLIC_BASE_URL
         sync: false
-      - key: NODE_ENV
-        value: production
+      - key: RESEND_API_KEY
+        sync: false
+      - key: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+    buildCommand: ""
+    startCommand: ""
+    healthCheckPath: /api/health
+    autoDeploy: true
