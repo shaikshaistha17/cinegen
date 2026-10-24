@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { stripe, isStripeDemoMode } from "@/lib/stripe";
 import { createServiceClient } from "@/lib/supabase";
 import { createNotification, getNotificationTitle, getNotificationMessage } from '@/lib/notifications';
+import { sendPaymentReceivedEmail } from '@/lib/email';
 
 // Disable body parsing for webhook signature verification
 export const runtime = 'nodejs';
@@ -74,15 +75,15 @@ export async function POST(request: NextRequest) {
           break;
         }
 
-        // Get creator user_id for notification
+        // Get creator user_id and email for notification
         const { data: creatorProfile } = await supabase
           .from("creator_profiles")
-          .select("user_id")
+          .select("user_id, user:users!inner(email)")
           .eq("id", payment.creator_id)
           .single();
 
         if (creatorProfile) {
-          // Send notification to creator
+          // Send in-app notification to creator
           await createNotification(
             creatorProfile.user_id,
             'payment_received',
@@ -92,6 +93,30 @@ export async function POST(request: NextRequest) {
             }),
             `/projects/${payment.agreement_id}`
           );
+
+          // Send email notification to creator
+          const creatorEmail = (creatorProfile.user as any).email;
+          if (creatorEmail) {
+            // Get project title
+            const { data: agreementData } = await supabase
+              .from("agreements")
+              .select("brief:briefs!inner(campaign_title)")
+              .eq("id", payment.agreement_id)
+              .single();
+
+            const projectTitle = agreementData 
+              ? (agreementData.brief as any).campaign_title 
+              : 'Your project';
+
+            const projectUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://cinegen.ai'}/projects/${payment.agreement_id}`;
+            
+            await sendPaymentReceivedEmail(
+              creatorEmail,
+              payment.amount,
+              projectTitle,
+              projectUrl
+            );
+          }
         }
 
         break;

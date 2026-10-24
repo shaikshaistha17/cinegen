@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
     // Send welcome email (non-blocking, only in Supabase mode)
     if (authData.user) {
       try {
-        await sendWelcomeEmail(authData.user.email!, name);
+        await sendWelcomeEmail(authData.user.email!, name, role as 'brand' | 'creator');
       } catch (emailError) {
         // Log but don't fail registration
         console.error('Failed to send welcome email:', emailError);

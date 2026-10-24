@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase';
 import { createNotification, getNotificationTitle, getNotificationMessage } from '@/lib/notifications';
+import { sendProposalNotificationEmail, sendProposalAcceptedEmail } from '@/lib/email';
 
 export async function GET(request: NextRequest) {
   try {
@@ -156,7 +157,7 @@ export async function POST(request: NextRequest) {
 
       const creatorName = creatorData ? (creatorData.user as any).name : 'A creator';
 
-      // Send notification to brand
+      // Send in-app notification to brand
       await createNotification(
         brandUserId,
         'proposal_submitted',
@@ -167,6 +168,23 @@ export async function POST(request: NextRequest) {
         }),
         `/briefs/${body.briefId}`
       );
+
+      // Send email notification to brand
+      const { data: brandUser } = await supabase
+        .from('users')
+        .select('email')
+        .eq('id', brandUserId)
+        .single();
+
+      if (brandUser?.email) {
+        const proposalUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://cinegen.ai'}/briefs/${body.briefId}`;
+        await sendProposalNotificationEmail(
+          brandUser.email,
+          creatorName,
+          briefData.campaign_title,
+          proposalUrl
+        );
+      }
     }
 
     return NextResponse.json({ proposal: data }, { status: 201 });
@@ -302,6 +320,22 @@ export async function PATCH(request: NextRequest) {
           }),
           `/briefs/${proposal.brief_id}`
         );
+
+        // Send email notification to creator
+        const { data: creatorUser } = await supabase
+          .from('users')
+          .select('email')
+          .eq('id', creatorUserId)
+          .single();
+
+        if (creatorUser?.email) {
+          const projectUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://cinegen.ai'}/briefs/${proposal.brief_id}`;
+          await sendProposalAcceptedEmail(
+            creatorUser.email,
+            briefData.campaign_title,
+            projectUrl
+          );
+        }
       }
 
       return NextResponse.json({

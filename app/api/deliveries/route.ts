@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase';
 import { uploadDelivery } from '@/lib/supabase-storage';
 import { inspectMedia } from '@/lib/mediaInspector';
+import { sendDeliveryUploadedEmail } from '@/lib/email';
 import { writeFile, unlink } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
@@ -193,6 +194,30 @@ export async function POST(request: NextRequest) {
 
     if (deliveryError) {
       throw deliveryError;
+    }
+
+    // Send email notification to brand
+    const { data: briefData } = await supabase
+      .from('agreements')
+      .select(`
+        brief:briefs!inner(
+          campaign_title,
+          brand:brand_profiles!inner(
+            user:users!inner(email)
+          )
+        )
+      `)
+      .eq('id', agreementId)
+      .single();
+
+    if (briefData) {
+      const brandEmail = ((briefData.brief as any).brand.user as any).email;
+      const projectTitle = (briefData.brief as any).campaign_title;
+
+      if (brandEmail) {
+        const reviewUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://cinegen.ai'}/projects/${agreementId}`;
+        await sendDeliveryUploadedEmail(brandEmail, projectTitle, reviewUrl);
+      }
     }
 
     return NextResponse.json({ delivery }, { status: 201 });
