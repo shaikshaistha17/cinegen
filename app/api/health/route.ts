@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase';
 
+// Mark this route as dynamic to prevent static generation
+export const dynamic = 'force-dynamic';
+
 /**
  * Health check endpoint for monitoring and uptime checks
  * Verifies database connectivity and returns service status
@@ -11,9 +14,10 @@ export async function GET(request: NextRequest) {
   try {
     const startTime = Date.now();
     
-    // Check database connectivity
+    // Check database connectivity using briefs table (simpler RLS)
+    // Avoids users table which has complex/problematic RLS policies
     const supabase = createClient();
-    const { error } = await supabase.from('users').select('id').limit(1);
+    const { error } = await supabase.from('briefs').select('id').limit(1);
     
     const responseTime = Date.now() - startTime;
 
