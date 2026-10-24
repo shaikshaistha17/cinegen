@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase";
 import { stripe, isStripeDemoMode } from "@/lib/stripe";
+import { checkRateLimit, getRateLimitResetTime } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,6 +12,23 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Rate limiting: max 5 payment attempts per user per hour
+    const rateLimitKey = `payment:${user.id}`;
+    const isAllowed = checkRateLimit(rateLimitKey, 5, 60 * 60 * 1000);
+
+    if (!isAllowed) {
+      const resetTime = getRateLimitResetTime(rateLimitKey);
+      const minutes = Math.ceil(resetTime / 60);
+      
+      return NextResponse.json(
+        { 
+          error: `Too many payment attempts. Please contact support or try again in ${minutes} minute${minutes > 1 ? 's' : ''}.`,
+          retryAfter: resetTime,
+        },
+        { status: 429 }
+      );
     }
 
     const body = await request.json();

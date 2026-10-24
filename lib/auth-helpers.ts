@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import { createServiceClient } from './supabase';
 
 /**
  * Hash a password using bcryptjs with 10 salt rounds
@@ -22,32 +23,59 @@ export function generateOTP(): string {
 }
 
 /**
- * Store OTP code with expiration (15 minutes)
- * In production, this should be stored in database
+ * Store OTP code with expiration (15 minutes) in database
+ * Uses service role for direct database access bypassing RLS
  */
-const otpStore = new Map<string, { code: string; expiresAt: Date }>();
-
-export function storeOTP(email: string, code: string, expiresAt: Date): void {
-  otpStore.set(email.toLowerCase(), { code, expiresAt });
+export async function storeOTP(email: string, code: string, expiresAt: Date): Promise<void> {
+  const supabase = createServiceClient();
+  
+  const { error } = await supabase
+    .from('otp_verifications')
+    .insert({
+      email: email.toLowerCase(),
+      code,
+      expires_at: expiresAt.toISOString(),
+    });
+  
+  if (error) {
+    console.error('Error storing OTP:', error);
+    throw new Error('Failed to store OTP');
+  }
 }
 
 /**
  * Verify OTP code and check 15-minute expiry
+ * Marks OTP as used to prevent reuse
  */
-export function verifyOTP(email: string, code: string): boolean {
-  const stored = otpStore.get(email.toLowerCase());
-  if (!stored) return false;
+export async function verifyOTP(email: string, code: string): Promise<boolean> {
+  const supabase = createServiceClient();
   
-  const now = new Date();
-  if (now > stored.expiresAt) {
-    otpStore.delete(email.toLowerCase());
+  // Find valid OTP (not expired, not used)
+  const { data, error } = await supabase
+    .from('otp_verifications')
+    .select('id, expires_at')
+    .eq('email', email.toLowerCase())
+    .eq('code', code)
+    .is('used_at', null)
+    .gte('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+  
+  if (error || !data) {
     return false;
   }
   
-  const isValid = stored.code === code;
-  if (isValid) {
-    otpStore.delete(email.toLowerCase());
+  // Mark OTP as used to prevent reuse
+  const { error: updateError } = await supabase
+    .from('otp_verifications')
+    .update({ used_at: new Date().toISOString() })
+    .eq('id', data.id);
+  
+  if (updateError) {
+    console.error('Error marking OTP as used:', updateError);
+    return false;
   }
   
-  return isValid;
+  return true;
 }

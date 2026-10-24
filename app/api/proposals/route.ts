@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase';
 import { createNotification, getNotificationTitle, getNotificationMessage } from '@/lib/notifications';
 import { sendProposalNotificationEmail, sendProposalAcceptedEmail } from '@/lib/email';
+import { checkRateLimit, getRateLimitResetTime } from '@/lib/rate-limit';
 
 export async function GET(request: NextRequest) {
   try {
@@ -79,6 +80,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Creator profile not found. Please complete your profile setup.' },
         { status: 400 }
+      );
+    }
+
+    // Rate limiting: max 10 proposals per creator per hour
+    const rateLimitKey = `proposals:${creatorProfile.id}`;
+    const isAllowed = checkRateLimit(rateLimitKey, 10, 60 * 60 * 1000);
+
+    if (!isAllowed) {
+      const resetTime = getRateLimitResetTime(rateLimitKey);
+      const minutes = Math.ceil(resetTime / 60);
+      
+      return NextResponse.json(
+        { 
+          error: `Too many proposals submitted. Please slow down and try again in ${minutes} minute${minutes > 1 ? 's' : ''}.`,
+          retryAfter: resetTime,
+        },
+        { status: 429 }
       );
     }
 

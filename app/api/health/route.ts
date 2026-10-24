@@ -1,83 +1,53 @@
-import { NextResponse } from 'next/server';
-import { createClient, createServiceClient } from '@/lib/supabase';
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase';
 
-export async function GET() {
+/**
+ * Health check endpoint for monitoring and uptime checks
+ * Verifies database connectivity and returns service status
+ * 
+ * No authentication required - public endpoint
+ */
+export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient();
+    const startTime = Date.now();
     
     // Check database connectivity
-    const { error: dbError } = await supabase
-      .from('users')
-      .select('id')
-      .limit(1);
+    const supabase = createClient();
+    const { error } = await supabase.from('users').select('id').limit(1);
     
-    const databaseStatus = dbError ? 'error' : 'connected';
-    
-    // Check storage availability (use service role to list buckets)
-    let storageStatus = 'available';
-    let deliveriesBucketExists = false;
-    
-    try {
-      const supabaseAdmin = createServiceClient();
-      const { data: buckets, error: storageError } = await supabaseAdmin
-        .storage
-        .listBuckets();
-      
-      if (storageError) {
-        storageStatus = 'error';
-      } else {
-        deliveriesBucketExists = buckets?.some((b: any) => b.name === 'deliveries' || b.id === 'deliveries') ?? false;
-      }
-    } catch (e) {
-      storageStatus = 'error';
+    const responseTime = Date.now() - startTime;
+
+    if (error) {
+      console.error('Health check database error:', error);
+      return NextResponse.json(
+        {
+          status: 'error',
+          database: 'disconnected',
+          error: 'Database connectivity check failed',
+          timestamp: new Date().toISOString(),
+          responseTimeMs: responseTime,
+        },
+        { status: 503 }
+      );
     }
-    
-    // Check media inspection capabilities
-    let imageInspection = 'available';
-    let videoInspection = 'unavailable';
-    
-    try {
-      // Check if sharp is available (for images)
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      require.resolve('sharp');
-      imageInspection = 'available';
-    } catch {
-      imageInspection = 'unavailable';
-    }
-    
-    // Check if ffprobe is available (for videos)
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { execSync } = require('child_process');
-      execSync('which ffprobe', { stdio: 'ignore' });
-      videoInspection = 'available';
-    } catch {
-      videoInspection = 'unavailable';
-    }
-    
-    const isHealthy = 
-      databaseStatus === 'connected' && 
-      storageStatus === 'available' &&
-      deliveriesBucketExists;
-    
+
     return NextResponse.json({
-      status: isHealthy ? 'healthy' : 'degraded',
+      status: 'ok',
+      database: 'connected',
       timestamp: new Date().toISOString(),
-      checks: {
-        database: databaseStatus,
-        storage: storageStatus,
-        deliveriesBucket: deliveriesBucketExists ? 'exists' : 'missing',
-        mediaInspection: {
-          images: imageInspection,
-          videos: videoInspection
-        }
-      }
+      responseTimeMs: responseTime,
+      version: process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0',
     });
   } catch (error: any) {
-    return NextResponse.json({
-      status: 'error',
-      timestamp: new Date().toISOString(),
-      error: error.message
-    }, { status: 500 });
+    console.error('Health check error:', error);
+    return NextResponse.json(
+      {
+        status: 'error',
+        database: 'unknown',
+        error: error.message || 'Health check failed',
+        timestamp: new Date().toISOString(),
+      },
+      { status: 503 }
+    );
   }
 }
